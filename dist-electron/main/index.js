@@ -205,7 +205,8 @@ ipcMain.handle(
         description,
         tags,
         visibility,
-        previewImagePath
+        previewImagePath,
+        changeNotes
       } = modData;
       let { workshopId } = modData;
       let publishedFileId;
@@ -222,9 +223,14 @@ ipcMain.handle(
       updateDetails.visibility = visibilityToUgcVisibility(
         visibility || "private"
       );
-      updateDetails.contentPath = zipPath;
+      if (zipPath) {
+        updateDetails.contentPath = zipPath;
+      }
       if (previewImagePath && fs.existsSync(previewImagePath)) {
         updateDetails.previewPath = previewImagePath;
+      }
+      if (changeNotes) {
+        updateDetails.changeNote = changeNotes;
       }
       let ugcResult;
       if (!workshopId) {
@@ -252,28 +258,6 @@ ipcMain.handle(
         publishedFileId,
         error: void 0
       };
-      if (!modData.workshopId && result.publishedFileId) {
-        const modName = path.basename(zipPath, ".zip");
-        const modJsonPath = path.join(
-          __dirname,
-          "..",
-          "..",
-          "..",
-          modName,
-          "mod.json"
-        );
-        if (fs.existsSync(modJsonPath)) {
-          const modJson = JSON.parse(
-            fs.readFileSync(modJsonPath, "utf8")
-          );
-          modJson.workshopId = result.publishedFileId;
-          fs.writeFileSync(modJsonPath, JSON.stringify(modJson, null, 2));
-          console.log(
-            "Updated mod.json with workshop ID:",
-            result.publishedFileId
-          );
-        }
-      }
       console.log(
         "Workshop upload completed successfully:",
         result.publishedFileId

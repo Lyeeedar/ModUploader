@@ -1,3 +1,5 @@
+import { WorkshopItem } from '../types';
+
 export interface LocalMod {
   name: string;
   path: string;
@@ -12,6 +14,7 @@ export interface LocalMod {
   workshopId: string | null;
 }
 
-export type NavigationState = 
+export type NavigationState =
   | { screen: 'list' }
-  | { screen: 'create' };
+  | { screen: 'create' }
+  | { screen: 'edit'; item: WorkshopItem };

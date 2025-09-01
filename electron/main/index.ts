@@ -17,6 +17,7 @@ import {
   ModVisibility,
 } from '../../src/types';
 import { init } from 'steamworks.js';
+import type { Client } from 'steamworks.js';
 
 // Import the enums we need from steamworks.js
 const UserListType = {
@@ -279,20 +280,14 @@ ipcMain.handle(
         tags,
         visibility,
         previewImagePath,
+        changeNotes,
       } = modData;
       let { workshopId } = modData;
 
       let publishedFileId: string;
 
-      // Prepare update details for steamworks.js
-      const updateDetails: {
-        title?: string;
-        description?: string;
-        tags?: string[];
-        visibility?: number;
-        contentPath?: string;
-        previewPath?: string;
-      } = {};
+      // Prepare update details for steamworks.js using the proper type
+      const updateDetails: Parameters<Client['workshop']['updateItem']>[1] = {};
 
       if (title) {
         updateDetails.title = title;
@@ -312,10 +307,17 @@ ipcMain.handle(
       updateDetails.visibility = visibilityToUgcVisibility(
         visibility || 'private',
       );
-      updateDetails.contentPath = zipPath;
+      
+      if (zipPath) {
+        updateDetails.contentPath = zipPath;
+      }
 
       if (previewImagePath && fs.existsSync(previewImagePath)) {
         updateDetails.previewPath = previewImagePath;
+      }
+
+      if (changeNotes) {
+        updateDetails.changeNote = changeNotes;
       }
 
       let ugcResult: { needsToAcceptAgreement: boolean };
@@ -351,31 +353,6 @@ ipcMain.handle(
         publishedFileId: publishedFileId,
         error: undefined,
       };
-
-      // Save workshop ID back to mod.json if it's a new upload
-      if (!modData.workshopId && result.publishedFileId) {
-        const modName = path.basename(zipPath, '.zip');
-        const modJsonPath = path.join(
-          __dirname,
-          '..',
-          '..',
-          '..',
-          modName,
-          'mod.json',
-        );
-
-        if (fs.existsSync(modJsonPath)) {
-          const modJson: ModMetadata = JSON.parse(
-            fs.readFileSync(modJsonPath, 'utf8'),
-          );
-          modJson.workshopId = result.publishedFileId;
-          fs.writeFileSync(modJsonPath, JSON.stringify(modJson, null, 2));
-          console.log(
-            'Updated mod.json with workshop ID:',
-            result.publishedFileId,
-          );
-        }
-      }
 
       console.log(
         'Workshop upload completed successfully:',

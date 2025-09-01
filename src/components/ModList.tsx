@@ -103,15 +103,9 @@ export const ModList: React.FC<ModListProps> = ({ onCreateNew, onEditItem, onLog
           <div className="mod-list-container">
             <div className="mod-list">
             {/* Create New Mod - Always at top */}
-            <div className="mod-item create-new" onClick={onCreateNew}>
-              <div className="mod-info">
-                <h3>+ Upload New Mod</h3>
-                <p className="mod-description">
-                  Upload a new mod to the Steam Workshop
-                </p>
-              </div>
-              <div className="mod-actions">
-                <div className="mod-status create">Upload</div>
+            <div className="mod-item create-new single-row" onClick={onCreateNew}>
+              <div className="mod-info-compact">
+                <h3 className="mod-title-compact">+ Upload New Mod</h3>
               </div>
             </div>
 
@@ -167,12 +161,6 @@ interface WorkshopItemCardProps {
 }
 
 const WorkshopItemCard: React.FC<WorkshopItemCardProps> = ({ item, onEdit, onLog }) => {
-  const handleViewOnSteam = () => {
-    const url = `https://steamcommunity.com/sharedfiles/filedetails/?id=${item.publishedFileId}`;
-    onLog('info', `Opening workshop item in browser: ${item.title}`);
-    window.open(url, '_blank');
-  };
-
   const handleEdit = () => {
     if (onEdit) {
       onEdit(item);
@@ -181,81 +169,25 @@ const WorkshopItemCard: React.FC<WorkshopItemCardProps> = ({ item, onEdit, onLog
   };
 
   return (
-    <div className="mod-item workshop-item">
-      <div className="mod-info">
-        <div className="mod-header">
-          <h3>{item.title}</h3>
-          <div className="mod-visibility-badge">
-            {item.visibility}
-          </div>
-        </div>
-        
-        <p className="mod-description">
-          {item.description || 'No description available'}
-        </p>
-        
-        <div className="mod-stats-grid">
-          <div className="stat-item">
+    <div className="mod-item workshop-item single-row" onClick={handleEdit}>
+      <div className="mod-info-compact">
+        <h3 className="mod-title-compact">{item.title}</h3>
+        <div className="mod-stats-compact">
+          <span className="stat-compact" title="Subscribers">
             <span className="stat-icon">👥</span>
-            <div className="stat-content">
-              <div className="stat-value">{item.subscriptions || 0}</div>
-              <div className="stat-label">Subscribers</div>
-            </div>
-          </div>
-          
-          <div className="stat-item">
+            {item.subscriptions || 0}
+          </span>
+          <span className="stat-compact" title="Favorites">
             <span className="stat-icon">⭐</span>
-            <div className="stat-content">
-              <div className="stat-value">{item.favorited || 0}</div>
-              <div className="stat-label">Favorites</div>
-            </div>
-          </div>
-          
-          <div className="stat-item">
+            {item.favorited || 0}
+          </span>
+          <span className="stat-compact" title="Views">
             <span className="stat-icon">👁</span>
-            <div className="stat-content">
-              <div className="stat-value">{item.views || 0}</div>
-              <div className="stat-label">Views</div>
-            </div>
-          </div>
-          
-          <div className="stat-item">
-            <span className="stat-icon">📅</span>
-            <div className="stat-content">
-              <div className="stat-value">
-                {new Date(item.updatedDate * 1000).toLocaleDateString()}
-              </div>
-              <div className="stat-label">Last Updated</div>
-            </div>
-          </div>
-        </div>
-        
-        {item.tags && item.tags.length > 0 && (
-          <div className="mod-tags">
-            {item.tags.map((tag, index) => (
-              <span key={index} className="tag-chip">{tag}</span>
-            ))}
-          </div>
-        )}
-      </div>
-      
-      <div className="mod-actions">
-        <button 
-          className="game-button primary small"
-          onClick={handleEdit}
-          title="Update this mod"
-        >
-          Update Mod
-        </button>
-        <button 
-          className="game-button small"
-          onClick={handleViewOnSteam}
-          title="View on Steam Workshop"
-        >
-          View on Steam
-        </button>
-        <div className="workshop-id">
-          ID: {item.publishedFileId}
+            {item.views || 0}
+          </span>
+          <span className="mod-visibility-badge-compact">
+            {item.visibility}
+          </span>
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@ import { ModList } from './components/ModList';
 import { ModEditor } from './components/ModEditor';
 import { StatusMessage } from './components/StatusMessage';
 import { useDebugLog } from './hooks/useDebugLog';
-import { ModUploadData } from './types';
+import { ModUploadData, WorkshopItem } from './types';
 import { NavigationState, LocalMod } from './types/navigation';
 
 interface StatusMsg {
@@ -28,6 +28,10 @@ const App: React.FC = () => {
 
   const handleCreateNew = useCallback(() => {
     setNavigationState({ screen: 'create' });
+  }, []);
+
+  const handleEditItem = useCallback((item: WorkshopItem) => {
+    setNavigationState({ screen: 'edit', item });
   }, []);
 
   const handleBack = useCallback(() => {
@@ -80,13 +84,25 @@ const App: React.FC = () => {
         return (
           <ModList
             onCreateNew={handleCreateNew}
+            onEditItem={handleEditItem}
             onLog={log}
             debugMessages={messages}
             onClearDebug={clear}
           />
         );
       
-      // Removed edit mode since we're not scanning local mods
+      case 'edit':
+        return (
+          <ModEditor
+            onBack={handleBack}
+            onUpload={handleUpload}
+            onLog={log}
+            onShowStatus={showStatus}
+            debugMessages={messages}
+            onClearDebug={clear}
+            editingItem={navigationState.item}
+          />
+        );
       
       case 'create':
         return (

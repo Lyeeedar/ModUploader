@@ -439,19 +439,25 @@ select.game-input {
 .mod-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 8px;
 }
 
 .mod-item {
   background: rgba(10, 6, 4, 0.6);
   border: 1px solid rgba(212, 175, 55, 0.3);
   border-radius: 6px;
-  padding: 15px;
+  padding: 12px 15px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   transition: all 0.3s ease;
   cursor: pointer;
+  min-height: 60px;
+}
+
+.mod-item.single-row {
+  padding: 8px 15px;
+  min-height: 50px;
 }
 
 .mod-item:hover {
@@ -605,6 +611,12 @@ select.game-input {
   margin-bottom: 30px;
   padding-bottom: 15px;
   border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
 .workshop-info {
@@ -798,6 +810,68 @@ select.game-input {
   gap: 10px;
   align-items: stretch;
 }
+
+/* Compact Single-Row Styles */
+.mod-info-compact {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  min-width: 0;
+}
+
+.mod-title-compact {
+  color: #ffd700;
+  font-size: 1.1em;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 200px;
+}
+
+.mod-description-compact {
+  color: #b8a582;
+  font-size: 0.9em;
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+
+.mod-stats-compact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.stat-compact {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #d4af37;
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+.stat-compact .stat-icon {
+  font-size: 1em;
+}
+
+.mod-visibility-badge-compact {
+  background: rgba(212, 175, 55, 0.2);
+  border: 1px solid #d4af37;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 0.8em;
+  color: #d4af37;
+  text-transform: capitalize;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 
 @media (max-width: 768px) {
   .mod-stats-grid {

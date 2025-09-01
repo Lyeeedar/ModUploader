@@ -13,13 +13,15 @@ export { LocalMod } from './types/navigation';
 export type ModVisibility = 'public' | 'friends' | 'private' | 'unlisted';
 
 export interface ModUploadData {
-  zipPath: string;
+  zipPath?: string; // Optional for workshop item updates
   title: string;
   description: string;
   tags?: string;
   visibility?: ModVisibility;
   previewImagePath?: string;
   workshopId?: string;
+  changeNotes?: string;
+  change_note?: string; // Alternative field name for Steam compatibility
 }
 
 export interface WorkshopItem {
