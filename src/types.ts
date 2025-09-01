@@ -54,6 +54,8 @@ export interface ElectronAPI {
   selectPreviewImage: () => Promise<string | null>;
   uploadToWorkshop: (modData: ModUploadData) => Promise<WorkshopUploadResult>;
   getWorkshopItems: () => Promise<WorkshopItemsResult>;
+  openUrl: (url: string) => Promise<void>;
+  openSteamWorkshop: (publishedFileId: string) => Promise<void>;
 }
 
 declare global {

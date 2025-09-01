@@ -1,1 +1,0 @@
-"use strict";const e=require("electron"),r={selectZip:()=>e.ipcRenderer.invoke("select-zip"),selectPreviewImage:()=>e.ipcRenderer.invoke("select-preview-image"),uploadToWorkshop:o=>e.ipcRenderer.invoke("upload-to-workshop",o),getWorkshopItems:()=>e.ipcRenderer.invoke("get-workshop-items")};e.contextBridge.exposeInMainWorld("electronAPI",r);

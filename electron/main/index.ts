@@ -3,6 +3,7 @@ import {
   BrowserWindow,
   ipcMain,
   dialog,
+  shell,
   IpcMainInvokeEvent,
 } from 'electron';
 import * as path from 'path';
@@ -175,6 +176,33 @@ app.on('activate', () => {
 });
 
 // IPC Handlers
+
+ipcMain.handle('open-url', async (_event: IpcMainInvokeEvent, url: string): Promise<void> => {
+  console.log('Opening URL:', url);
+  await shell.openExternal(url);
+});
+
+ipcMain.handle('open-steam-workshop', async (_event: IpcMainInvokeEvent, publishedFileId: string): Promise<void> => {
+  console.log('Opening Steam Workshop item:', publishedFileId);
+  
+  if (!steamClient || !steamInitialized) {
+    // Fallback to opening in browser if Steam is not available
+    const url = `https://steamcommunity.com/sharedfiles/filedetails/?id=${publishedFileId}`;
+    await shell.openExternal(url);
+    return;
+  }
+
+  try {
+    // Use Steam overlay to open the workshop page
+    steamClient.overlay.activateToWebPage(`steam://url/CommunityFilePage/${publishedFileId}`);
+    console.log('Opened Steam Workshop page via overlay for item:', publishedFileId);
+  } catch (overlayError) {
+    console.warn('Could not open Steam overlay, falling back to browser:', overlayError);
+    // Fallback to opening in browser
+    const url = `https://steamcommunity.com/sharedfiles/filedetails/?id=${publishedFileId}`;
+    await shell.openExternal(url);
+  }
+});
 
 ipcMain.handle('select-zip', async (): Promise<string | null> => {
   console.log('select-zip handler called');

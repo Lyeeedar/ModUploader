@@ -178,11 +178,17 @@ export const ModEditor: React.FC<ModEditorProps> = ({
     }));
   };
 
-  const handleOpenInSteam = () => {
+  const handleOpenInSteam = async () => {
     if (editingItem) {
-      const url = `https://steamcommunity.com/sharedfiles/filedetails/?id=${editingItem.publishedFileId}`;
-      onLog('info', `Opening workshop item in browser: ${editingItem.title}`);
-      window.open(url, '_blank');
+      onLog('info', `Opening workshop item in Steam: ${editingItem.title}`);
+      try {
+        await window.electronAPI.openSteamWorkshop(editingItem.publishedFileId);
+        onShowStatus({ type: 'success', text: 'Opened Steam Workshop page' });
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        onLog('error', `Failed to open Steam Workshop: ${errorMsg}`);
+        onShowStatus({ type: 'error', text: 'Failed to open Steam Workshop page' });
+      }
     }
   };
 
