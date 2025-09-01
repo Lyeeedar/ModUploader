@@ -1,31 +1,66 @@
 import React, { useState, useEffect } from 'react';
-import { LocalMod } from '../types/navigation';
+import { WorkshopItem, WorkshopItemsResult } from '../types';
 
 interface ModListProps {
-  onSelectMod: (mod: LocalMod) => void;
   onCreateNew: () => void;
   onLog: (type: 'error' | 'info' | 'success', message: string) => void;
 }
 
-export const ModList: React.FC<ModListProps> = ({ onSelectMod, onCreateNew, onLog }) => {
-  const [mods, setMods] = useState<LocalMod[]>([]);
+export const ModList: React.FC<ModListProps> = ({ onCreateNew, onLog }) => {
+  const [workshopItems, setWorkshopItems] = useState<WorkshopItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusMessage, setStatusMessage] = useState<string>('');
+  const [status, setStatus] = useState<'success' | 'steam_not_connected' | 'error'>('success');
 
   useEffect(() => {
-    loadMods();
+    // Wait a bit longer for Steam to initialize, or listen for Steam initialization
+    const timer = setTimeout(() => {
+      loadWorkshopItems();
+    }, 2000); // Wait 2 seconds for Steam to initialize
+
+    return () => clearTimeout(timer);
   }, []);
 
-  const loadMods = async () => {
+  const loadWorkshopItems = async () => {
     setLoading(true);
     try {
-      onLog('info', 'Scanning for local mods...');
-      const foundMods = await window.electronAPI.getModsDirectory();
-      setMods(foundMods || []);
-      onLog('success', `Found ${foundMods?.length || 0} mods`);
+      onLog('info', 'Loading your Steam Workshop items...');
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise<WorkshopItemsResult>((resolve) => {
+        setTimeout(() => resolve({
+          items: [],
+          status: 'error',
+          message: 'Request timed out - Steam may not be responding'
+        }), 5000);
+      });
+      
+      const result = await Promise.race([
+        window.electronAPI.getWorkshopItems(),
+        timeoutPromise
+      ]);
+      
+      setWorkshopItems(Array.isArray(result.items) ? result.items : []);
+      setStatus(result.status);
+      setStatusMessage(result.message || '');
+      
+      if (result.status === 'success') {
+        if (result.items && result.items.length > 0) {
+          onLog('success', `Loaded ${result.items.length} workshop items`);
+        } else {
+          onLog('info', result.message || 'No workshop items found');
+        }
+      } else if (result.status === 'steam_not_connected') {
+        onLog('error', result.message || 'Steam is not connected');
+      } else {
+        onLog('error', result.message || 'Failed to load workshop items');
+      }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      onLog('error', `Failed to load mods: ${errorMsg}`);
-      setMods([]);
+      onLog('error', `Failed to load workshop items: ${errorMsg}`);
+      setWorkshopItems([]);
+      setStatus('error');
+      setStatusMessage(`Failed to load workshop items: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
@@ -35,12 +70,12 @@ export const ModList: React.FC<ModListProps> = ({ onSelectMod, onCreateNew, onLo
     return (
       <div className="container">
         <header>
-          <h1>Mod Manager</h1>
+          <h1>Steam Workshop Manager</h1>
           <p className="subtitle">Ascend from Nine Mountains</p>
         </header>
         <main>
           <div className="section">
-            <div className="loading">Scanning for mods...</div>
+            <div className="loading">Loading Steam Workshop...</div>
           </div>
         </main>
       </div>
@@ -50,42 +85,58 @@ export const ModList: React.FC<ModListProps> = ({ onSelectMod, onCreateNew, onLo
   return (
     <div className="container">
       <header>
-        <h1>Mod Manager</h1>
+        <h1>Steam Workshop Manager</h1>
         <p className="subtitle">Ascend from Nine Mountains</p>
       </header>
 
       <main>
         <div className="section">
-          <h2>Your Mods</h2>
+          <h2>Steam Workshop</h2>
           
           <div className="mod-list">
             {/* Create New Mod - Always at top */}
             <div className="mod-item create-new" onClick={onCreateNew}>
               <div className="mod-info">
-                <h3>+ Create New Mod</h3>
+                <h3>+ Upload New Mod</h3>
                 <p className="mod-description">
-                  Create and upload a new mod to the Steam Workshop
+                  Upload a new mod to the Steam Workshop
                 </p>
               </div>
               <div className="mod-actions">
-                <div className="mod-status create">New</div>
+                <div className="mod-status create">Upload</div>
               </div>
             </div>
 
-            {/* Existing Mods */}
-            {mods.length === 0 ? (
+            {/* Workshop Items */}
+            {workshopItems.length === 0 ? (
               <div className="no-mods">
-                <p>No mods found in the parent directory.</p>
-                <p>Place your mod folders alongside this ModUploader folder.</p>
+                <p>
+                  {status === 'steam_not_connected' 
+                    ? '🔌 Steam Connection Issue'
+                    : status === 'error'
+                    ? '❌ Error Loading Items'
+                    : '📦 No Workshop Items'
+                  }
+                </p>
+                <p>{statusMessage || 'No workshop items found.'}</p>
+                {status === 'steam_not_connected' && (
+                  <button 
+                    className="game-button small" 
+                    onClick={loadWorkshopItems}
+                    style={{ marginTop: '10px' }}
+                  >
+                    Retry Connection
+                  </button>
+                )}
               </div>
             ) : (
-              mods.map(mod => (
-                <ModListItem 
-                  key={mod.name} 
-                  mod={mod} 
-                  onClick={() => onSelectMod(mod)} 
+              Array.isArray(workshopItems) ? workshopItems.map(item => (
+                <WorkshopItemCard 
+                  key={item.publishedFileId} 
+                  item={item} 
+                  onLog={onLog}
                 />
-              ))
+              )) : []
             )}
           </div>
         </div>
@@ -94,32 +145,49 @@ export const ModList: React.FC<ModListProps> = ({ onSelectMod, onCreateNew, onLo
   );
 };
 
-interface ModListItemProps {
-  mod: LocalMod;
-  onClick: () => void;
+interface WorkshopItemCardProps {
+  item: WorkshopItem;
+  onLog: (type: 'error' | 'info' | 'success', message: string) => void;
 }
 
-const ModListItem: React.FC<ModListItemProps> = ({ mod, onClick }) => {
-  const hasWorkshopId = !!mod.workshopId;
-  
+const WorkshopItemCard: React.FC<WorkshopItemCardProps> = ({ item, onLog }) => {
+  const handleViewOnSteam = () => {
+    const url = `https://steamcommunity.com/sharedfiles/filedetails/?id=${item.publishedFileId}`;
+    onLog('info', `Opening workshop item in browser: ${item.title}`);
+    // In Electron, we could use shell.openExternal, but for now just log
+    window.open(url, '_blank');
+  };
+
   return (
-    <div className="mod-item" onClick={onClick}>
+    <div className="mod-item">
       <div className="mod-info">
-        <h3>{mod.metadata.name || mod.name}</h3>
+        <h3>{item.title}</h3>
         <p className="mod-description">
-          {mod.metadata.description || 'No description available'}
+          {item.description || 'No description available'}
         </p>
         <div className="mod-metadata">
-          <span>Version: {mod.metadata.version || '1.0.0'}</span>
-          {mod.metadata.author && <span>Author: {mod.metadata.author}</span>}
-          {hasWorkshopId && (
-            <span className="workshop-id">Workshop ID: {mod.workshopId}</span>
-          )}
+          <span>Updated: {new Date(item.updatedDate * 1000).toLocaleDateString()}</span>
+          <span className="workshop-stats">
+            👥 {item.subscriptions || 0} subscribers
+          </span>
+          <span className="workshop-stats">
+            ⭐ {item.favorited || 0} favorites
+          </span>
+          <span className="workshop-stats">
+            👁 {item.views || 0} views
+          </span>
         </div>
       </div>
       <div className="mod-actions">
-        <div className={`mod-status ${hasWorkshopId ? 'published' : 'local'}`}>
-          {hasWorkshopId ? 'Published' : 'Local Only'}
+        <button 
+          className="game-button small"
+          onClick={handleViewOnSteam}
+          title="View on Steam Workshop"
+        >
+          View on Steam
+        </button>
+        <div className="mod-status published">
+          Published
         </div>
       </div>
     </div>

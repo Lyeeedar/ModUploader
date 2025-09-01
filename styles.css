@@ -1,6 +1,6 @@
 @font-face {
   font-family: 'GameFont';
-  src: url('../../assets/fonts/Sentywen2017.otf') format('opentype');
+  src: url('./assets/fonts/Sentywen2017.otf') format('opentype');
   font-weight: normal;
   font-style: normal;
 }
@@ -12,11 +12,12 @@
 }
 
 body {
-  font-family: 'GameFont', 'Segoe UI', system-ui, sans-serif;
+  font-family: 'GameFont', 'Segoe UI', system-ui, -apple-system, sans-serif;
   background: linear-gradient(135deg, #0a0604 0%, #1a1210 50%, #0f0907 100%);
   color: #f4e4bc;
   min-height: 100vh;
   overflow-x: hidden;
+  padding-bottom: 220px; /* Space for debug console */
 }
 
 .container {
@@ -553,19 +554,19 @@ select.game-input {
 /* Debug Console */
 .debug-console {
   position: fixed;
-  bottom: 20px;
-  left: 20px;
-  width: 400px;
-  max-height: 300px;
-  background: rgba(10, 6, 4, 0.95);
-  border: 2px solid #8b7355;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: rgba(10, 6, 4, 0.98);
+  border-top: 2px solid #8b7355;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.6);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   font-family: 'Courier New', monospace;
   font-size: 12px;
+  z-index: 1000;
 }
 
 .debug-header {

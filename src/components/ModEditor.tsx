@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ModUploadData } from '../types';
-import { LocalMod } from '../types/navigation';
 
 interface ModEditorProps {
-  mod?: LocalMod; // undefined for create new
   onBack: () => void;
   onUpload: (data: ModUploadData) => Promise<void>;
   onLog: (type: 'error' | 'info' | 'success', message: string) => void;
@@ -11,13 +9,11 @@ interface ModEditorProps {
 }
 
 export const ModEditor: React.FC<ModEditorProps> = ({ 
-  mod, 
   onBack, 
   onUpload, 
   onLog, 
   onShowStatus 
 }) => {
-  const isEditing = !!mod;
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -28,27 +24,17 @@ export const ModEditor: React.FC<ModEditorProps> = ({
   const [selectedPreviewPath, setSelectedPreviewPath] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Initialize form data when editing existing mod
+  // Initialize empty form for new mod uploads
   useEffect(() => {
-    if (mod) {
-      setFormData({
-        title: mod.metadata.name || mod.name,
-        description: mod.metadata.description || '',
-        tags: '', // Could extract from metadata if stored
-        visibility: 'public'
-      });
-    } else {
-      // Reset form for new mod
-      setFormData({
-        title: '',
-        description: '',
-        tags: '',
-        visibility: 'public'
-      });
-      setSelectedZipPath(null);
-      setSelectedPreviewPath(null);
-    }
-  }, [mod]);
+    setFormData({
+      title: '',
+      description: '',
+      tags: '',
+      visibility: 'public'
+    });
+    setSelectedZipPath(null);
+    setSelectedPreviewPath(null);
+  }, []);
 
   const handleSelectZip = async () => {
     try {
@@ -109,8 +95,7 @@ export const ModEditor: React.FC<ModEditorProps> = ({
       description: formData.description,
       tags: formData.tags,
       visibility: formData.visibility,
-      previewImagePath: selectedPreviewPath || undefined,
-      workshopId: mod?.workshopId || undefined // Include workshop ID for updates
+      previewImagePath: selectedPreviewPath || undefined
     };
 
     try {
@@ -136,9 +121,9 @@ export const ModEditor: React.FC<ModEditorProps> = ({
   return (
     <div className="container">
       <header>
-        <h1>{isEditing ? 'Edit Mod' : 'Create New Mod'}</h1>
+        <h1>Upload New Mod</h1>
         <p className="subtitle">
-          {isEditing ? mod.metadata.name || mod.name : 'Upload to Steam Workshop'}
+          Upload to Steam Workshop
         </p>
       </header>
 
@@ -146,13 +131,8 @@ export const ModEditor: React.FC<ModEditorProps> = ({
         <div className="section">
           <div className="editor-header">
             <button className="game-button" onClick={onBack} disabled={isUploading}>
-              ← Back to Mod List
+              ← Back to Workshop Items
             </button>
-            {isEditing && mod.workshopId && (
-              <div className="workshop-info">
-                <span className="workshop-id">Workshop ID: {mod.workshopId}</span>
-              </div>
-            )}
           </div>
 
           <form onSubmit={handleSubmit}>
@@ -171,11 +151,6 @@ export const ModEditor: React.FC<ModEditorProps> = ({
                   {selectedZipPath ? selectedZipPath.split(/[\\\/]/).pop() : 'No file selected'}
                 </span>
               </div>
-              {isEditing && (
-                <p className="form-help">
-                  Select a new ZIP file to update this mod, or the same ZIP to republish.
-                </p>
-              )}
             </div>
 
             <div className="form-group">
@@ -255,12 +230,7 @@ export const ModEditor: React.FC<ModEditorProps> = ({
                 disabled={isUploading}
               >
                 <span className="button-text">
-                  {isUploading 
-                    ? 'Uploading...' 
-                    : isEditing && mod.workshopId
-                      ? 'Update Workshop Item'
-                      : 'Upload to Workshop'
-                  }
+                  {isUploading ? 'Uploading...' : 'Upload to Workshop'}
                 </span>
               </button>
             </div>

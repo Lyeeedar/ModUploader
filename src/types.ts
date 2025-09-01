@@ -10,12 +10,14 @@ export interface ModMetadata {
 // Re-export from navigation types for compatibility
 export { LocalMod } from './types/navigation';
 
+export type ModVisibility = 'public' | 'friends' | 'private' | 'unlisted';
+
 export interface ModUploadData {
   zipPath: string;
   title: string;
   description: string;
   tags?: string;
-  visibility?: 'public' | 'friends' | 'private' | 'unlisted';
+  visibility?: ModVisibility;
   previewImagePath?: string;
   workshopId?: string;
 }
@@ -39,12 +41,17 @@ export interface WorkshopUploadResult {
   error?: string;
 }
 
+export interface WorkshopItemsResult {
+  items: WorkshopItem[];
+  status: 'success' | 'steam_not_connected' | 'error';
+  message?: string;
+}
+
 export interface ElectronAPI {
   selectZip: () => Promise<string | null>;
   selectPreviewImage: () => Promise<string | null>;
-  getModsDirectory: () => Promise<import('./types/navigation').LocalMod[]>;
   uploadToWorkshop: (modData: ModUploadData) => Promise<WorkshopUploadResult>;
-  getWorkshopItems: () => Promise<WorkshopItem[]>;
+  getWorkshopItems: () => Promise<WorkshopItemsResult>;
 }
 
 declare global {

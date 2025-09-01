@@ -14,5 +14,4 @@ export interface LocalMod {
 
 export type NavigationState = 
   | { screen: 'list' }
-  | { screen: 'edit'; mod: LocalMod }
   | { screen: 'create' };

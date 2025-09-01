@@ -25,9 +25,7 @@ const App: React.FC = () => {
     setStatusMessage(null);
   }, []);
 
-  const handleSelectMod = useCallback((mod: LocalMod) => {
-    setNavigationState({ screen: 'edit', mod });
-  }, []);
+  // Remove mod selection since we're not scanning local mods anymore
 
   const handleCreateNew = useCallback(() => {
     setNavigationState({ screen: 'create' });
@@ -82,22 +80,12 @@ const App: React.FC = () => {
       case 'list':
         return (
           <ModList
-            onSelectMod={handleSelectMod}
             onCreateNew={handleCreateNew}
             onLog={log}
           />
         );
       
-      case 'edit':
-        return (
-          <ModEditor
-            mod={navigationState.mod}
-            onBack={handleBack}
-            onUpload={handleUpload}
-            onLog={log}
-            onShowStatus={showStatus}
-          />
-        );
+      // Removed edit mode since we're not scanning local mods
       
       case 'create':
         return (
