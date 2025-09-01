@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "vite build && electron-builder",
     "build:win": "vite build && electron-builder --win",
-    "build:linux": "vite build && electron-builder --linux"
+    "build:linux": "vite build && electron-builder --linux",
+    "build:portable": "vite build && electron-builder --win --config.win.target=portable"
   },
   "author": "",
   "license": "MIT",
@@ -42,11 +43,17 @@
       "package.json"
     ],
     "win": {
-      "target": "nsis",
+      "target": "portable",
       "icon": "icon.ico"
+    },
+    "portable": {
+      "artifactName": "${productName} ${version} Portable.${ext}"
     },
     "linux": {
       "target": "AppImage",
+      "icon": "icon.png"
+    },
+    "mac": {
       "icon": "icon.png"
     },
     "nsis": {

@@ -134,3 +134,10 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+/release
+/dist-electron
+/dist-electron
+electron/main/index.ts
+dist-electron/preload/index.mjs
+dist-electron/main/index.js.map
+dist-electron/main/index.js

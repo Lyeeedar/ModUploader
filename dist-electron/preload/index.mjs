@@ -1,10 +1,1 @@
-"use strict";
-const electron = require("electron");
-const electronAPI = {
-  selectZip: () => electron.ipcRenderer.invoke("select-zip"),
-  selectPreviewImage: () => electron.ipcRenderer.invoke("select-preview-image"),
-  uploadToWorkshop: (modData) => electron.ipcRenderer.invoke("upload-to-workshop", modData),
-  getWorkshopItems: () => electron.ipcRenderer.invoke("get-workshop-items")
-};
-electron.contextBridge.exposeInMainWorld("electronAPI", electronAPI);
-//# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5kZXgubWpzIiwic291cmNlcyI6WyIuLi8uLi9lbGVjdHJvbi9wcmVsb2FkL2luZGV4LnRzIl0sInNvdXJjZXNDb250ZW50IjpbImltcG9ydCB7IGNvbnRleHRCcmlkZ2UsIGlwY1JlbmRlcmVyIH0gZnJvbSAnZWxlY3Ryb24nO1xyXG5pbXBvcnQgdHlwZSB7IEVsZWN0cm9uQVBJLCBNb2RVcGxvYWREYXRhIH0gZnJvbSAnLi4vLi4vc3JjL3R5cGVzJztcclxuXHJcbmNvbnN0IGVsZWN0cm9uQVBJOiBFbGVjdHJvbkFQSSA9IHtcclxuICBzZWxlY3RaaXA6ICgpID0+IGlwY1JlbmRlcmVyLmludm9rZSgnc2VsZWN0LXppcCcpLFxyXG4gIHNlbGVjdFByZXZpZXdJbWFnZTogKCkgPT4gaXBjUmVuZGVyZXIuaW52b2tlKCdzZWxlY3QtcHJldmlldy1pbWFnZScpLFxyXG4gIHVwbG9hZFRvV29ya3Nob3A6IChtb2REYXRhOiBNb2RVcGxvYWREYXRhKSA9PiBpcGNSZW5kZXJlci5pbnZva2UoJ3VwbG9hZC10by13b3Jrc2hvcCcsIG1vZERhdGEpLFxyXG4gIGdldFdvcmtzaG9wSXRlbXM6ICgpID0+IGlwY1JlbmRlcmVyLmludm9rZSgnZ2V0LXdvcmtzaG9wLWl0ZW1zJylcclxufTtcclxuXHJcbmNvbnRleHRCcmlkZ2UuZXhwb3NlSW5NYWluV29ybGQoJ2VsZWN0cm9uQVBJJywgZWxlY3Ryb25BUEkpOyJdLCJuYW1lcyI6WyJpcGNSZW5kZXJlciIsImNvbnRleHRCcmlkZ2UiXSwibWFwcGluZ3MiOiI7O0FBR0EsTUFBTSxjQUEyQjtBQUFBLEVBQy9CLFdBQVcsTUFBTUEsU0FBQUEsWUFBWSxPQUFPLFlBQVk7QUFBQSxFQUNoRCxvQkFBb0IsTUFBTUEsU0FBQUEsWUFBWSxPQUFPLHNCQUFzQjtBQUFBLEVBQ25FLGtCQUFrQixDQUFDLFlBQTJCQSxTQUFBQSxZQUFZLE9BQU8sc0JBQXNCLE9BQU87QUFBQSxFQUM5RixrQkFBa0IsTUFBTUEscUJBQVksT0FBTyxvQkFBb0I7QUFDakU7QUFFQUMsU0FBQUEsY0FBYyxrQkFBa0IsZUFBZSxXQUFXOyJ9
+"use strict";const e=require("electron"),r={selectZip:()=>e.ipcRenderer.invoke("select-zip"),selectPreviewImage:()=>e.ipcRenderer.invoke("select-preview-image"),uploadToWorkshop:o=>e.ipcRenderer.invoke("upload-to-workshop",o),getWorkshopItems:()=>e.ipcRenderer.invoke("get-workshop-items")};e.contextBridge.exposeInMainWorld("electronAPI",r);

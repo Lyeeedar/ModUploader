@@ -84,11 +84,12 @@ function createWindow(): void {
       contextIsolation: true,
       nodeIntegration: false,
     },
-    icon: path.join(__dirname, '..', '..', 'icon.png'),
+    icon: path.join(__dirname, '..', '..', 'icon.ico'),
     backgroundColor: '#0a0604',
     titleBarStyle: 'default',
     frame: true,
     resizable: true,
+    autoHideMenuBar: true,
   });
 
   // In development, load from Vite dev server
@@ -307,7 +308,7 @@ ipcMain.handle(
       updateDetails.visibility = visibilityToUgcVisibility(
         visibility || 'private',
       );
-      
+
       if (zipPath) {
         updateDetails.contentPath = zipPath;
       }
