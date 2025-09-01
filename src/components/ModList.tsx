@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { WorkshopItem, WorkshopItemsResult } from '../types';
+import { DebugMessage } from '../hooks/useDebugLog';
+import { GameTitle } from './GameTitle';
+import { DebugConsole } from './DebugConsole';
 
 interface ModListProps {
   onCreateNew: () => void;
+  onEditItem?: (item: WorkshopItem) => void;
   onLog: (type: 'error' | 'info' | 'success', message: string) => void;
+  debugMessages: DebugMessage[];
+  onClearDebug: () => void;
 }
 
-export const ModList: React.FC<ModListProps> = ({ onCreateNew, onLog }) => {
+export const ModList: React.FC<ModListProps> = ({ onCreateNew, onEditItem, onLog, debugMessages, onClearDebug }) => {
   const [workshopItems, setWorkshopItems] = useState<WorkshopItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusMessage, setStatusMessage] = useState<string>('');
@@ -69,14 +75,18 @@ export const ModList: React.FC<ModListProps> = ({ onCreateNew, onLog }) => {
   if (loading) {
     return (
       <div className="container">
-        <header>
-          <h1>Steam Workshop Manager</h1>
-          <p className="subtitle">Ascend from Nine Mountains</p>
-        </header>
+        <GameTitle 
+          subtitle="Steam Workshop Manager"
+        />
         <main>
           <div className="section">
             <div className="loading">Loading Steam Workshop...</div>
           </div>
+          
+          <DebugConsole
+            messages={debugMessages}
+            onClear={onClearDebug}
+          />
         </main>
       </div>
     );
@@ -84,16 +94,14 @@ export const ModList: React.FC<ModListProps> = ({ onCreateNew, onLog }) => {
 
   return (
     <div className="container">
-      <header>
-        <h1>Steam Workshop Manager</h1>
-        <p className="subtitle">Ascend from Nine Mountains</p>
-      </header>
+      <GameTitle 
+        subtitle="Steam Workshop Manager"
+      />
 
       <main>
         <div className="section">
-          <h2>Steam Workshop</h2>
-          
-          <div className="mod-list">
+          <div className="mod-list-container">
+            <div className="mod-list">
             {/* Create New Mod - Always at top */}
             <div className="mod-item create-new" onClick={onCreateNew}>
               <div className="mod-info">
@@ -133,13 +141,20 @@ export const ModList: React.FC<ModListProps> = ({ onCreateNew, onLog }) => {
               Array.isArray(workshopItems) ? workshopItems.map(item => (
                 <WorkshopItemCard 
                   key={item.publishedFileId} 
-                  item={item} 
+                  item={item}
+                  onEdit={onEditItem}
                   onLog={onLog}
                 />
               )) : []
             )}
+            </div>
           </div>
         </div>
+        
+        <DebugConsole
+          messages={debugMessages}
+          onClear={onClearDebug}
+        />
       </main>
     </div>
   );
@@ -147,38 +162,91 @@ export const ModList: React.FC<ModListProps> = ({ onCreateNew, onLog }) => {
 
 interface WorkshopItemCardProps {
   item: WorkshopItem;
+  onEdit?: (item: WorkshopItem) => void;
   onLog: (type: 'error' | 'info' | 'success', message: string) => void;
 }
 
-const WorkshopItemCard: React.FC<WorkshopItemCardProps> = ({ item, onLog }) => {
+const WorkshopItemCard: React.FC<WorkshopItemCardProps> = ({ item, onEdit, onLog }) => {
   const handleViewOnSteam = () => {
     const url = `https://steamcommunity.com/sharedfiles/filedetails/?id=${item.publishedFileId}`;
     onLog('info', `Opening workshop item in browser: ${item.title}`);
-    // In Electron, we could use shell.openExternal, but for now just log
     window.open(url, '_blank');
   };
 
+  const handleEdit = () => {
+    if (onEdit) {
+      onEdit(item);
+      onLog('info', `Editing workshop item: ${item.title}`);
+    }
+  };
+
   return (
-    <div className="mod-item">
+    <div className="mod-item workshop-item">
       <div className="mod-info">
-        <h3>{item.title}</h3>
+        <div className="mod-header">
+          <h3>{item.title}</h3>
+          <div className="mod-visibility-badge">
+            {item.visibility}
+          </div>
+        </div>
+        
         <p className="mod-description">
           {item.description || 'No description available'}
         </p>
-        <div className="mod-metadata">
-          <span>Updated: {new Date(item.updatedDate * 1000).toLocaleDateString()}</span>
-          <span className="workshop-stats">
-            👥 {item.subscriptions || 0} subscribers
-          </span>
-          <span className="workshop-stats">
-            ⭐ {item.favorited || 0} favorites
-          </span>
-          <span className="workshop-stats">
-            👁 {item.views || 0} views
-          </span>
+        
+        <div className="mod-stats-grid">
+          <div className="stat-item">
+            <span className="stat-icon">👥</span>
+            <div className="stat-content">
+              <div className="stat-value">{item.subscriptions || 0}</div>
+              <div className="stat-label">Subscribers</div>
+            </div>
+          </div>
+          
+          <div className="stat-item">
+            <span className="stat-icon">⭐</span>
+            <div className="stat-content">
+              <div className="stat-value">{item.favorited || 0}</div>
+              <div className="stat-label">Favorites</div>
+            </div>
+          </div>
+          
+          <div className="stat-item">
+            <span className="stat-icon">👁</span>
+            <div className="stat-content">
+              <div className="stat-value">{item.views || 0}</div>
+              <div className="stat-label">Views</div>
+            </div>
+          </div>
+          
+          <div className="stat-item">
+            <span className="stat-icon">📅</span>
+            <div className="stat-content">
+              <div className="stat-value">
+                {new Date(item.updatedDate * 1000).toLocaleDateString()}
+              </div>
+              <div className="stat-label">Last Updated</div>
+            </div>
+          </div>
         </div>
+        
+        {item.tags && item.tags.length > 0 && (
+          <div className="mod-tags">
+            {item.tags.map((tag, index) => (
+              <span key={index} className="tag-chip">{tag}</span>
+            ))}
+          </div>
+        )}
       </div>
+      
       <div className="mod-actions">
+        <button 
+          className="game-button primary small"
+          onClick={handleEdit}
+          title="Update this mod"
+        >
+          Update Mod
+        </button>
         <button 
           className="game-button small"
           onClick={handleViewOnSteam}
@@ -186,8 +254,8 @@ const WorkshopItemCard: React.FC<WorkshopItemCardProps> = ({ item, onLog }) => {
         >
           View on Steam
         </button>
-        <div className="mod-status published">
-          Published
+        <div className="workshop-id">
+          ID: {item.publishedFileId}
         </div>
       </div>
     </div>

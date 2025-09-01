@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { ModList } from './components/ModList';
 import { ModEditor } from './components/ModEditor';
-import { DebugConsole } from './components/DebugConsole';
 import { StatusMessage } from './components/StatusMessage';
 import { useDebugLog } from './hooks/useDebugLog';
 import { ModUploadData } from './types';
@@ -82,6 +81,8 @@ const App: React.FC = () => {
           <ModList
             onCreateNew={handleCreateNew}
             onLog={log}
+            debugMessages={messages}
+            onClearDebug={clear}
           />
         );
       
@@ -94,6 +95,8 @@ const App: React.FC = () => {
             onUpload={handleUpload}
             onLog={log}
             onShowStatus={showStatus}
+            debugMessages={messages}
+            onClearDebug={clear}
           />
         );
       
@@ -109,11 +112,6 @@ const App: React.FC = () => {
       <StatusMessage
         message={statusMessage}
         onDismiss={dismissStatus}
-      />
-
-      <DebugConsole
-        messages={messages}
-        onClear={clear}
       />
     </>
   );

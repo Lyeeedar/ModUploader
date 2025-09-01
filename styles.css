@@ -12,80 +12,226 @@
 }
 
 body {
-  font-family: 'GameFont', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: linear-gradient(135deg, #0a0604 0%, #1a1210 50%, #0f0907 100%);
+  font-family:
+    'GameFont',
+    'Segoe UI',
+    system-ui,
+    -apple-system,
+    sans-serif;
+  background: #0a0604;
   color: #f4e4bc;
   min-height: 100vh;
-  overflow-x: hidden;
-  padding-bottom: 220px; /* Space for debug console */
+  overflow: hidden; /* Prevent body scrolling */
+  position: relative;
+}
+
+/* Background Image - use full path */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('./public/shenHendaCityStreet.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.6;
+  z-index: -2;
+}
+
+/* Dark overlay for better text readability */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(10, 6, 4, 0.6) 0%,
+    rgba(10, 6, 4, 0.8) 50%,
+    rgba(10, 6, 4, 0.95) 100%
+  );
+  z-index: -1;
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
+/* Game Header - matches main game */
+.game-header {
+  text-align: center;
+  padding: 0px;
+  margin-top: -20px;
+  position: relative;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(212, 175, 55, 0.15) 0%,
+    transparent 70%
+  );
+  flex-shrink: 0; /* Don't shrink the header */
+}
+
+.title-section {
+  height: 144px;
+  width: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: -10px;
+}
+
+.title-subtitle {
+  font-size: 1.8em;
+  color: #d4af37;
+  text-shadow:
+    2px 2px 4px rgba(0, 0, 0, 0.8),
+    0 0 20px rgba(212, 175, 55, 0.3);
+  letter-spacing: 1px;
+  font-weight: 600;
+  margin-top: -45px; /* Overlap significantly with the brush stroke */
+}
+
+.title-layer {
+  line-height: 1;
+  margin: 0;
+  font-weight: normal;
+}
+
+/* Shimmer animation */
+@keyframes shimmerTitle {
+  0% {
+    background-position: 200% 0%;
+  }
+  100% {
+    background-position: -200% 0%;
+  }
+}
+
+/* Legacy styles for fallback */
 header {
   text-align: center;
   margin-bottom: 40px;
-  padding: 30px 0;
-  background: radial-gradient(ellipse at center, rgba(212, 175, 55, 0.1) 0%, transparent 70%);
+  padding: 40px 0 30px 0;
+  position: relative;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(212, 175, 55, 0.15) 0%,
+    transparent 70%
+  );
 }
 
 h1 {
-  font-size: 2.5em;
-  color: #d4af37;
-  text-shadow: 
-    0 0 20px rgba(212, 175, 55, 0.4),
-    0 0 40px rgba(212, 175, 55, 0.2),
-    2px 2px 4px rgba(0, 0, 0, 0.8);
-  margin-bottom: 10px;
-  letter-spacing: 2px;
+  font-size: 4.5em;
+  font-family: 'GameFont', serif;
+  position: relative;
+  margin: 0;
+  letter-spacing: 3px;
+
+  /* Base text with gradient */
+  background: linear-gradient(
+    180deg,
+    #8b7355 0%,
+    #d4af37 30%,
+    #ffd700 50%,
+    #d4af37 70%,
+    #8b7355 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+
+  /* Multiple shadows for depth */
+  text-shadow:
+    0 0 30px rgba(255, 215, 0, 0.6),
+    0 0 60px rgba(255, 215, 0, 0.4),
+    0 0 90px rgba(255, 215, 0, 0.2),
+    3px 3px 6px rgba(0, 0, 0, 0.9),
+    -1px -1px 2px rgba(255, 255, 255, 0.1);
+
+  /* Fix for gradient text with shadow */
+  filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.5))
+    drop-shadow(3px 3px 4px rgba(0, 0, 0, 0.8));
 }
 
 .subtitle {
-  font-size: 1.2em;
+  font-size: 1.8em;
+  color: #d4af37;
+  text-shadow:
+    2px 2px 4px rgba(0, 0, 0, 0.8),
+    0 0 20px rgba(212, 175, 55, 0.3);
+  margin-top: 10px;
+  letter-spacing: 1px;
+  font-weight: 600;
+}
+
+.subtitle-secondary {
+  font-size: 1.1em;
   color: #b8a582;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
+  margin-top: 5px;
+  font-style: italic;
+}
+
+main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
 }
 
 .section {
-  background: linear-gradient(145deg, rgba(20, 13, 8, 0.9) 0%, rgba(15, 10, 6, 0.9) 100%);
+  background: linear-gradient(
+    145deg,
+    rgba(20, 13, 8, 0.9) 0%,
+    rgba(15, 10, 6, 0.9) 100%
+  );
   border: 2px solid #d4af37;
   border-radius: 8px;
   padding: 25px;
   margin-bottom: 30px;
-  box-shadow: 
+  box-shadow:
     inset 0 2px 4px rgba(0, 0, 0, 0.3),
     0 4px 8px rgba(0, 0, 0, 0.4),
     0 0 20px rgba(212, 175, 55, 0.1);
   position: relative;
-  overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* Allow flexbox to shrink */
+  /* Removed diagonal background effect */
 }
 
-.section::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image: repeating-linear-gradient(
-    45deg,
-    transparent,
-    transparent 10px,
-    rgba(212, 175, 55, 0.02) 10px,
-    rgba(212, 175, 55, 0.02) 20px
-  );
-  pointer-events: none;
+.mod-list-container {
+  flex: 1;
+  overflow-y: auto;
+  margin: -5px; /* Compensate for padding to keep border aligned */
+  padding: 5px;
+}
+
+.form-container {
+  flex: 1;
+  overflow-y: auto;
+  margin: -5px; /* Compensate for padding to keep border aligned */
+  padding: 5px;
 }
 
 .section h2 {
   color: #ffd700;
   font-size: 1.8em;
   margin-bottom: 20px;
-  text-shadow: 
+  text-shadow:
     0 0 10px rgba(255, 215, 0, 0.3),
     2px 2px 4px rgba(0, 0, 0, 0.8);
   border-bottom: 2px solid rgba(212, 175, 55, 0.3);
@@ -109,13 +255,13 @@ h1 {
   );
   border: 2px solid #d4af37;
   border-radius: 4px;
-  text-shadow: 
-    -1px -1px 2px rgba(0,0,0,0.8),
-    1px -1px 2px rgba(0,0,0,0.8),
-    -1px 1px 2px rgba(0,0,0,0.8),
-    1px 1px 2px rgba(0,0,0,0.8),
+  text-shadow:
+    -1px -1px 2px rgba(0, 0, 0, 0.8),
+    1px -1px 2px rgba(0, 0, 0, 0.8),
+    -1px 1px 2px rgba(0, 0, 0, 0.8),
+    1px 1px 2px rgba(0, 0, 0, 0.8),
     0 0 4px rgba(212, 175, 55, 0.3);
-  box-shadow: 
+  box-shadow:
     inset 0 2px 4px rgba(0, 0, 0, 0.3),
     inset 0 -2px 4px rgba(0, 0, 0, 0.5),
     inset 2px 0 4px rgba(0, 0, 0, 0.2),
@@ -152,7 +298,7 @@ h1 {
     rgba(45, 29, 19, 0.88) 100%
   );
   border-color: #ffd700;
-  box-shadow: 
+  box-shadow:
     inset 0 2px 4px rgba(0, 0, 0, 0.2),
     inset 0 -2px 4px rgba(0, 0, 0, 0.4),
     inset 2px 0 4px rgba(0, 0, 0, 0.15),
@@ -161,17 +307,17 @@ h1 {
     0 0 20px rgba(212, 175, 55, 0.3),
     0 0 30px rgba(255, 215, 0, 0.15);
   color: #fff5d6;
-  text-shadow: 
-    -1px -1px 2px rgba(0,0,0,0.8),
-    1px -1px 2px rgba(0,0,0,0.8),
-    -1px 1px 2px rgba(0,0,0,0.8),
-    1px 1px 2px rgba(0,0,0,0.8),
+  text-shadow:
+    -1px -1px 2px rgba(0, 0, 0, 0.8),
+    1px -1px 2px rgba(0, 0, 0, 0.8),
+    -1px 1px 2px rgba(0, 0, 0, 0.8),
+    1px 1px 2px rgba(0, 0, 0, 0.8),
     0 0 8px rgba(212, 175, 55, 0.5),
     0 0 16px rgba(255, 215, 0, 0.2);
 }
 
 .game-button:active {
-  box-shadow: 
+  box-shadow:
     inset 0 1px 0 rgba(255, 215, 0, 0.2),
     inset 0 -1px 0 rgba(0, 0, 0, 0.6),
     0 1px 2px rgba(0, 0, 0, 0.4),
@@ -180,22 +326,23 @@ h1 {
 
 .game-button:disabled {
   color: rgba(105, 105, 105, 0.8);
-  background: linear-gradient(145deg, 
+  background: linear-gradient(
+    145deg,
     rgba(15, 15, 15, 1) 0%,
     rgba(25, 25, 25, 1) 30%,
     rgba(20, 20, 20, 1) 70%,
     rgba(10, 10, 10, 1) 100%
   );
   border-color: rgba(105, 105, 105, 0.5);
-  box-shadow: 
+  box-shadow:
     inset 0 1px 0 rgba(128, 128, 128, 0.1),
     inset 0 -1px 0 rgba(0, 0, 0, 0.3),
     0 1px 2px rgba(0, 0, 0, 0.2);
-  text-shadow: 
-    -1px -1px 1px rgba(0,0,0,0.5),
-    1px -1px 1px rgba(0,0,0,0.5),
-    -1px 1px 1px rgba(0,0,0,0.5),
-    1px 1px 1px rgba(0,0,0,0.5);
+  text-shadow:
+    -1px -1px 1px rgba(0, 0, 0, 0.5),
+    1px -1px 1px rgba(0, 0, 0, 0.5),
+    -1px 1px 1px rgba(0, 0, 0, 0.5),
+    1px 1px 1px rgba(0, 0, 0, 0.5);
   cursor: not-allowed;
 }
 
@@ -227,7 +374,7 @@ h1 {
     rgba(255, 215, 0, 1) 80%,
     rgba(255, 223, 0, 0.95) 100%
   );
-  box-shadow: 
+  box-shadow:
     inset 0 2px 4px rgba(255, 255, 255, 0.3),
     inset 0 -2px 4px rgba(0, 0, 0, 0.4),
     0 4px 8px rgba(0, 0, 0, 0.4),
@@ -258,7 +405,7 @@ h1 {
   font-family: inherit;
   font-size: 1em;
   transition: all 0.3s ease;
-  box-shadow: 
+  box-shadow:
     inset 0 2px 4px rgba(0, 0, 0, 0.4),
     0 1px 2px rgba(0, 0, 0, 0.2);
 }
@@ -267,7 +414,7 @@ h1 {
   outline: none;
   border-color: #d4af37;
   background: rgba(15, 10, 6, 0.9);
-  box-shadow: 
+  box-shadow:
     inset 0 2px 4px rgba(0, 0, 0, 0.3),
     0 0 10px rgba(212, 175, 55, 0.2);
 }
@@ -356,11 +503,13 @@ select.game-input {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-.mod-info, .workshop-info {
+.mod-info,
+.workshop-info {
   flex: 1;
 }
 
-.mod-info h3, .workshop-info h3 {
+.mod-info h3,
+.workshop-info h3 {
   color: #ffd700;
   margin-bottom: 8px;
   font-size: 1.2em;
@@ -372,14 +521,16 @@ select.game-input {
   line-height: 1.4;
 }
 
-.mod-metadata, .workshop-metadata {
+.mod-metadata,
+.workshop-metadata {
   display: flex;
   gap: 20px;
   font-size: 0.9em;
   color: #b8a582;
 }
 
-.mod-metadata span, .workshop-metadata span {
+.mod-metadata span,
+.workshop-metadata span {
   display: inline-block;
 }
 
@@ -547,16 +698,133 @@ select.game-input {
   border: 2px solid rgba(10, 6, 4, 0.8);
 }
 
+/* Workshop Item Styles */
+.workshop-item {
+  background: linear-gradient(
+    135deg,
+    rgba(15, 10, 6, 0.95) 0%,
+    rgba(25, 18, 12, 0.95) 100%
+  );
+  border: 2px solid #8b7355;
+  position: relative;
+  overflow: visible;
+}
+
+.workshop-item:hover {
+  border-color: #d4af37;
+  box-shadow:
+    0 8px 16px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(212, 175, 55, 0.2);
+}
+
+.mod-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.mod-visibility-badge {
+  background: rgba(212, 175, 55, 0.2);
+  border: 1px solid #d4af37;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.85em;
+  color: #d4af37;
+  text-transform: capitalize;
+  font-weight: 600;
+}
+
+.mod-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin: 20px 0;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(139, 115, 85, 0.3);
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stat-icon {
+  font-size: 1.5em;
+  filter: sepia(1) saturate(2) hue-rotate(30deg);
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-value {
+  color: #f4e4bc;
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+.stat-label {
+  color: #8b7355;
+  font-size: 0.85em;
+  margin-top: 2px;
+}
+
+.mod-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.tag-chip {
+  background: rgba(139, 115, 85, 0.3);
+  border: 1px solid #8b7355;
+  border-radius: 12px;
+  padding: 4px 12px;
+  font-size: 0.85em;
+  color: #b8a582;
+  transition: all 0.2s ease;
+}
+
+.tag-chip:hover {
+  background: rgba(212, 175, 55, 0.2);
+  border-color: #d4af37;
+  color: #d4af37;
+}
+
+.workshop-id {
+  font-size: 0.85em;
+  color: #8b7355;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  font-family: monospace;
+  margin-top: 10px;
+}
+
+.mod-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+}
+
+@media (max-width: 768px) {
+  .mod-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, #a08563 0%, #ffd700 50%, #a08563 100%);
 }
 
 /* Debug Console */
 .debug-console {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
   height: 200px;
   background: rgba(10, 6, 4, 0.98);
   border-top: 2px solid #8b7355;
@@ -566,7 +834,14 @@ select.game-input {
   flex-direction: column;
   font-family: 'Courier New', monospace;
   font-size: 12px;
-  z-index: 1000;
+  transition: height 0.3s ease-in-out;
+  margin-top: 20px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.debug-console.collapsed {
+  height: 36px;
 }
 
 .debug-header {
@@ -578,6 +853,12 @@ select.game-input {
   align-items: center;
   color: #d4af37;
   font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.debug-header:hover {
+  background: rgba(30, 23, 18, 0.9);
 }
 
 .debug-btn {

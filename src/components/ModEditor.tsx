@@ -1,18 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { ModUploadData } from '../types';
+import { DebugMessage } from '../hooks/useDebugLog';
+import { GameTitle } from './GameTitle';
+import { DebugConsole } from './DebugConsole';
 
 interface ModEditorProps {
   onBack: () => void;
   onUpload: (data: ModUploadData) => Promise<void>;
   onLog: (type: 'error' | 'info' | 'success', message: string) => void;
   onShowStatus: (message: { type: 'success' | 'error' | 'info'; text: string }) => void;
+  debugMessages: DebugMessage[];
+  onClearDebug: () => void;
 }
 
 export const ModEditor: React.FC<ModEditorProps> = ({ 
   onBack, 
   onUpload, 
   onLog, 
-  onShowStatus 
+  onShowStatus,
+  debugMessages,
+  onClearDebug
 }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -120,12 +127,9 @@ export const ModEditor: React.FC<ModEditorProps> = ({
 
   return (
     <div className="container">
-      <header>
-        <h1>Upload New Mod</h1>
-        <p className="subtitle">
-          Upload to Steam Workshop
-        </p>
-      </header>
+      <GameTitle 
+        subtitle="Steam Workshop Manager"
+      />
 
       <main>
         <div className="section">
@@ -135,7 +139,8 @@ export const ModEditor: React.FC<ModEditorProps> = ({
             </button>
           </div>
 
-          <form onSubmit={handleSubmit}>
+          <div className="form-container">
+            <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label>Mod Package (.zip)*</label>
               <div className="file-input-wrapper">
@@ -235,7 +240,13 @@ export const ModEditor: React.FC<ModEditorProps> = ({
               </button>
             </div>
           </form>
+          </div>
         </div>
+        
+        <DebugConsole
+          messages={debugMessages}
+          onClear={onClearDebug}
+        />
       </main>
     </div>
   );
