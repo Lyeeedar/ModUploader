@@ -16,8 +16,10 @@ import {
   WorkshopItemsResult,
   ModMetadata,
   ModVisibility,
+  ModPackageInfo,
 } from '../../src/types';
 import { init } from 'steamworks.js';
+import * as yauzl from 'yauzl';
 import type { Client } from 'steamworks.js';
 
 // Import the enums we need from steamworks.js
@@ -58,6 +60,16 @@ const UserListOrder = {
   VoteScoreDesc: 5,
   ForModeration: 6,
 };
+
+// Helper function to format mod names for better visual appeal
+function formatModName(name: string): string {
+  if (!name) return name;
+
+  return name
+    .replace(/[-_]/g, ' ') // Replace hyphens and underscores with spaces
+    .replace(/\b\w/g, (letter) => letter.toUpperCase()) // Capitalize first letter of each word
+    .trim(); // Remove any extra whitespace
+}
 
 const enum UgcItemVisibility {
   Public = 0,
@@ -177,32 +189,49 @@ app.on('activate', () => {
 
 // IPC Handlers
 
-ipcMain.handle('open-url', async (_event: IpcMainInvokeEvent, url: string): Promise<void> => {
-  console.log('Opening URL:', url);
-  await shell.openExternal(url);
-});
-
-ipcMain.handle('open-steam-workshop', async (_event: IpcMainInvokeEvent, publishedFileId: string): Promise<void> => {
-  console.log('Opening Steam Workshop item:', publishedFileId);
-  
-  if (!steamClient || !steamInitialized) {
-    // Fallback to opening in browser if Steam is not available
-    const url = `https://steamcommunity.com/sharedfiles/filedetails/?id=${publishedFileId}`;
+ipcMain.handle(
+  'open-url',
+  async (_event: IpcMainInvokeEvent, url: string): Promise<void> => {
+    console.log('Opening URL:', url);
     await shell.openExternal(url);
-    return;
-  }
+  },
+);
 
-  try {
-    // Use Steam overlay to open the workshop page
-    steamClient.overlay.activateToWebPage(`steam://url/CommunityFilePage/${publishedFileId}`);
-    console.log('Opened Steam Workshop page via overlay for item:', publishedFileId);
-  } catch (overlayError) {
-    console.warn('Could not open Steam overlay, falling back to browser:', overlayError);
-    // Fallback to opening in browser
-    const url = `https://steamcommunity.com/sharedfiles/filedetails/?id=${publishedFileId}`;
-    await shell.openExternal(url);
-  }
-});
+ipcMain.handle(
+  'open-steam-workshop',
+  async (
+    _event: IpcMainInvokeEvent,
+    publishedFileId: string,
+  ): Promise<void> => {
+    console.log('Opening Steam Workshop item:', publishedFileId);
+
+    if (!steamClient || !steamInitialized) {
+      // Fallback to opening in browser if Steam is not available
+      const url = `https://steamcommunity.com/sharedfiles/filedetails/?id=${publishedFileId}`;
+      await shell.openExternal(url);
+      return;
+    }
+
+    try {
+      // Use Steam overlay to open the workshop page
+      steamClient.overlay.activateToWebPage(
+        `steam://url/CommunityFilePage/${publishedFileId}`,
+      );
+      console.log(
+        'Opened Steam Workshop page via overlay for item:',
+        publishedFileId,
+      );
+    } catch (overlayError) {
+      console.warn(
+        'Could not open Steam overlay, falling back to browser:',
+        overlayError,
+      );
+      // Fallback to opening in browser
+      const url = `https://steamcommunity.com/sharedfiles/filedetails/?id=${publishedFileId}`;
+      await shell.openExternal(url);
+    }
+  },
+);
 
 ipcMain.handle('select-zip', async (): Promise<string | null> => {
   console.log('select-zip handler called');
@@ -273,6 +302,226 @@ ipcMain.handle('select-preview-image', async (): Promise<string | null> => {
     throw error;
   }
 });
+
+ipcMain.handle(
+  'extract-package-info',
+  async (
+    _event: IpcMainInvokeEvent,
+    zipPath: string,
+  ): Promise<ModPackageInfo | null> => {
+    console.log('extract-package-info handler called with:', zipPath);
+
+    return new Promise((resolve, reject) => {
+      yauzl.open(zipPath, { lazyEntries: true }, (err, zipfile) => {
+        if (err) {
+          console.error('Error opening ZIP file:', err);
+          resolve(null);
+          return;
+        }
+
+        if (!zipfile) {
+          console.error('No zipfile object returned');
+          resolve(null);
+          return;
+        }
+
+        let modJsFound = false;
+
+        zipfile.readEntry();
+
+        zipfile.on('entry', (entry) => {
+          // Look for mod.js in the root or any folder
+          if (entry.fileName.endsWith('mod.js') && !modJsFound) {
+            modJsFound = true;
+
+            if (/\/$/.test(entry.fileName)) {
+              // Directory entry, skip
+              zipfile.readEntry();
+              return;
+            }
+
+            // File entry, read it
+            zipfile.openReadStream(entry, (err, readStream) => {
+              if (err) {
+                console.error('Error opening read stream:', err);
+                zipfile.readEntry();
+                return;
+              }
+
+              if (!readStream) {
+                console.error('No read stream returned');
+                zipfile.readEntry();
+                return;
+              }
+
+              let data = '';
+              readStream.on('data', (chunk) => {
+                data += chunk;
+              });
+
+              readStream.on('end', () => {
+                try {
+                  // Extract metadata from the mod.js file
+                  console.log('Parsing mod.js content...');
+
+                  // Look for the getMetadata function and extract its return value
+                  // Handle both minified and non-minified code
+                  const metadataMatch = data.match(
+                    /getMetadata\s*:\s*function\s*\(\s*\)\s*\{\s*return\s*(\{[^}]*(?:\{[^}]*\}[^}]*)*\})/,
+                  );
+
+                  if (!metadataMatch) {
+                    console.log('No getMetadata function found in mod.js');
+                    resolve(null);
+                    zipfile.close();
+                    return;
+                  }
+
+                  // Parse the metadata object
+                  let metadataString = metadataMatch[1];
+                  console.log('Found metadata string:', metadataString);
+
+                  // Handle nested objects like author: {name: "value"}
+                  // First, try to find the complete metadata object by counting braces
+                  let braceCount = 0;
+                  let completeMetadata = '';
+                  let startIndex = data.indexOf(metadataMatch[1]);
+
+                  for (let i = startIndex; i < data.length; i++) {
+                    const char = data[i];
+                    completeMetadata += char;
+
+                    if (char === '{') {
+                      braceCount++;
+                    } else if (char === '}') {
+                      braceCount--;
+                      if (braceCount === 0) {
+                        break;
+                      }
+                    }
+                  }
+
+                  console.log('Complete metadata string:', completeMetadata);
+
+                  // Now clean up the metadata string for JSON parsing
+                  let cleanedMetadata = completeMetadata
+                    .replace(/(\w+):/g, '"$1":') // Quote unquoted property names
+                    .replace(/'/g, '"'); // Convert single quotes to double quotes
+
+                  const metadata = JSON.parse(cleanedMetadata);
+                  console.log('Parsed metadata:', metadata);
+
+                  const packageInfo: ModPackageInfo = {
+                    name: metadata.name,
+                    title: formatModName(metadata.title || metadata.name),
+                    description: metadata.description,
+                    version: metadata.version,
+                    author:
+                      typeof metadata.author === 'string'
+                        ? metadata.author
+                        : metadata.author?.name,
+                    tags: metadata.tags || metadata.keywords,
+                  };
+
+                  resolve(packageInfo);
+                  zipfile.close();
+                } catch (parseError) {
+                  console.error('Error parsing mod.js metadata:', parseError);
+                  console.error('Raw metadata string:', data.substring(0, 500));
+
+                  // Enhanced fallback: try to extract the complete getMetadata return object
+                  try {
+                    // Look for the exact pattern: getMetadata:function(){return{...}}
+                    const fullMatch = data.match(
+                      /getMetadata\s*:\s*function\s*\(\s*\)\s*\{\s*return\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}/,
+                    );
+
+                    if (fullMatch) {
+                      console.log('Found full metadata match:', fullMatch[0]);
+
+                      // Extract individual properties using more specific regex
+                      const nameMatch = fullMatch[0].match(
+                        /name\s*:\s*["']([^"']+)["']/,
+                      );
+                      const versionMatch = fullMatch[0].match(
+                        /version\s*:\s*["']([^"']+)["']/,
+                      );
+                      const descriptionMatch = fullMatch[0].match(
+                        /description\s*:\s*["']([^"']+)["']/,
+                      );
+                      const authorNameMatch = fullMatch[0].match(
+                        /author\s*:\s*\{[^}]*name\s*:\s*["']([^"']+)["']/,
+                      );
+
+                      const fallbackInfo: ModPackageInfo = {
+                        name: nameMatch?.[1],
+                        title: nameMatch?.[1]
+                          ? formatModName(nameMatch[1])
+                          : undefined,
+                        description: descriptionMatch?.[1],
+                        version: versionMatch?.[1],
+                        author: authorNameMatch?.[1],
+                      };
+
+                      console.log(
+                        'Using enhanced fallback parsing:',
+                        fallbackInfo,
+                      );
+                      resolve(fallbackInfo);
+                      zipfile.close();
+                    } else {
+                      // Last resort: basic regex extraction
+                      const nameMatch = data.match(
+                        /name\s*:\s*["']([^"']+)["'][^}]*version\s*:\s*["']([^"']+)["']/,
+                      );
+                      if (nameMatch) {
+                        const basicInfo: ModPackageInfo = {
+                          name: nameMatch[1],
+                          title: formatModName(nameMatch[1]),
+                          version: nameMatch[2],
+                        };
+                        console.log('Using basic fallback parsing:', basicInfo);
+                        resolve(basicInfo);
+                        zipfile.close();
+                      } else {
+                        console.log('All parsing methods failed');
+                        resolve(null);
+                        zipfile.close();
+                      }
+                    }
+                  } catch (fallbackError) {
+                    console.error('Fallback parsing failed:', fallbackError);
+                    resolve(null);
+                    zipfile.close();
+                  }
+                }
+              });
+
+              readStream.on('error', (streamError) => {
+                console.error('Error reading stream:', streamError);
+                zipfile.readEntry();
+              });
+            });
+          } else {
+            zipfile.readEntry();
+          }
+        });
+
+        zipfile.on('end', () => {
+          if (!modJsFound) {
+            console.log('No mod.js found in ZIP file');
+            resolve(null);
+          }
+        });
+
+        zipfile.on('error', (zipError) => {
+          console.error('ZIP file error:', zipError);
+          resolve(null);
+        });
+      });
+    });
+  },
+);
 
 const visibilityToUgcVisibility = (visibility: ModVisibility): number => {
   switch (visibility) {

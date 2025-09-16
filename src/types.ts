@@ -49,9 +49,19 @@ export interface WorkshopItemsResult {
   message?: string;
 }
 
+export interface ModPackageInfo {
+  name?: string;
+  title?: string;
+  description?: string;
+  version?: string;
+  author?: string;
+  tags?: string[];
+}
+
 export interface ElectronAPI {
   selectZip: () => Promise<string | null>;
   selectPreviewImage: () => Promise<string | null>;
+  extractPackageInfo: (zipPath: string) => Promise<ModPackageInfo | null>;
   uploadToWorkshop: (modData: ModUploadData) => Promise<WorkshopUploadResult>;
   getWorkshopItems: () => Promise<WorkshopItemsResult>;
   openUrl: (url: string) => Promise<void>;

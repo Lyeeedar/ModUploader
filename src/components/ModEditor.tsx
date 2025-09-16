@@ -68,6 +68,47 @@ export const ModEditor: React.FC<ModEditorProps> = ({
         const filename = path.split(/[\\\/]/).pop();
         onLog('success', `Selected ZIP: ${filename}`);
         onShowStatus({ type: 'info', text: `Selected: ${filename}` });
+
+        // Extract mod.js information to pre-populate form fields
+        try {
+          onLog('info', 'Extracting mod information from ZIP...');
+          const packageInfo = await window.electronAPI.extractPackageInfo(path);
+          
+          if (packageInfo) {
+            onLog('success', 'Successfully extracted mod information');
+            
+            // Only pre-populate fields that are empty (not overwrite existing data)
+            setFormData(prev => ({
+              ...prev,
+              title: prev.title || packageInfo.title || packageInfo.name || prev.title,
+              description: prev.description || packageInfo.description || prev.description,
+              tags: prev.tags || (packageInfo.tags ? packageInfo.tags.join(', ') : prev.tags)
+            }));
+
+            // Log what was extracted for debugging
+            if (packageInfo.title || packageInfo.name) {
+              onLog('info', `Found mod title: ${packageInfo.title || packageInfo.name}`);
+            }
+            if (packageInfo.description) {
+              onLog('info', `Found mod description: ${packageInfo.description.substring(0, 100)}${packageInfo.description.length > 100 ? '...' : ''}`);
+            }
+            if (packageInfo.tags && packageInfo.tags.length > 0) {
+              onLog('info', `Found tags: ${packageInfo.tags.join(', ')}`);
+            }
+            if (packageInfo.version) {
+              onLog('info', `Found mod version: ${packageInfo.version}`);
+            }
+            if (packageInfo.author) {
+              onLog('info', `Found mod author: ${packageInfo.author}`);
+            }
+          } else {
+            onLog('info', 'No mod.js found in ZIP file or could not extract metadata');
+          }
+        } catch (extractError) {
+          const errorMsg = extractError instanceof Error ? extractError.message : 'Unknown error';
+          onLog('error', `Failed to extract mod information: ${errorMsg}`);
+          // Don't show error to user since this is optional functionality
+        }
       } else {
         onLog('info', 'File selection cancelled');
       }
