@@ -8,7 +8,7 @@ import {
   IpcMainInvokeEvent,
 } from 'electron';
 import * as fs from 'fs';
-import type { Client } from 'steamworks.js';
+import type { Client } from '@pipelab/steamworks.js';
 import {
   ModUploadData,
   WorkshopUploadResult,
@@ -308,8 +308,7 @@ export function registerIpcHandlers(
         UserListType.Published,
         UGCType.Items,
         UserListOrder.CreationOrderDesc,
-        config.appId,
-        config.appId,
+        { creator: config.appId, consumer: config.appId },
       );
 
       const items: WorkshopItem[] = result.items

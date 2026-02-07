@@ -2,8 +2,8 @@
 
 import * as path from 'path';
 import * as fs from 'fs';
-import { init } from 'steamworks.js';
-import type { Client } from 'steamworks.js';
+import { init } from '@pipelab/steamworks.js';
+import type { Client } from '@pipelab/steamworks.js';
 import { config } from './config';
 import { BrowserWindow } from 'electron';
 

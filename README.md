@@ -14,8 +14,7 @@ A standalone Electron application for uploading mods to the Steam Workshop for "
 
 ## Prerequisites
 
-- Node.js (v16 or higher)
-- npm
+- [Bun](https://bun.sh/) (v1.0 or higher) - or Node.js v18+
 - Steam client must be running
 - You must own "Ascend from Nine Mountains" on Steam
 
@@ -28,7 +27,7 @@ cd ModUploader-AFNM
 
 2. Install dependencies:
 ```bash
-npm install
+bun install
 ```
 
 ## Development
@@ -36,24 +35,24 @@ npm install
 To run the application in development mode with hot reload:
 
 ```bash
-npm run dev
+bun run dev
 ```
 
 ## Building
 
 ### For Windows (Portable):
 ```bash
-npm run build:portable
+bun run build:portable
 ```
 
 ### For Windows (Installer):
 ```bash
-npm run build:win
+bun run build:win
 ```
 
 ### For Linux:
 ```bash
-npm run build:linux
+bun run build:linux
 ```
 
 The built application will be in the `release` folder.
@@ -131,10 +130,11 @@ ModUploader-AFNM/
 
 ## Technical Details
 
-- Built with Electron, React, TypeScript, and Vite
-- Uses `steamworks.js` for Steam Workshop integration
+- Built with Electron 40, React 19, TypeScript 5.9, and Vite 7
+- Uses [`@pipelab/steamworks.js`](https://github.com/CynToolkit/steamworks.js) for Steam Workshop integration (actively maintained community fork)
 - Styled to match the game's visual theme
 - Supports Windows and Linux platforms
+- Uses Bun as the package manager and runtime
 
 ## Troubleshooting
 

@@ -5,23 +5,23 @@
     "": {
       "name": "mod-uploader",
       "dependencies": {
-        "@types/yauzl": "latest",
-        "react": "latest",
-        "react-dom": "latest",
-        "steamworks.js": "latest",
-        "yauzl": "latest",
+        "@pipelab/steamworks.js": "^0.9.1",
+        "@types/yauzl": "^2.10.3",
+        "react": "^19.2.4",
+        "react-dom": "^19.2.4",
+        "yauzl": "^3.2.0",
       },
       "devDependencies": {
-        "@types/node": "latest",
-        "@types/react": "latest",
-        "@types/react-dom": "latest",
-        "@vitejs/plugin-react": "latest",
-        "electron": "latest",
-        "electron-builder": "latest",
-        "typescript": "latest",
-        "vite": "latest",
-        "vite-plugin-electron": "latest",
-        "vite-plugin-electron-renderer": "latest",
+        "@types/node": "^25.2.1",
+        "@types/react": "^19.2.13",
+        "@types/react-dom": "^19.2.3",
+        "@vitejs/plugin-react": "^5.1.3",
+        "electron": "^40.2.1",
+        "electron-builder": "^26.7.0",
+        "typescript": "^5.9.3",
+        "vite": "^7.3.1",
+        "vite-plugin-electron": "^0.29.0",
+        "vite-plugin-electron-renderer": "^0.14.6",
       },
     },
   },
@@ -159,6 +159,8 @@
     "@npmcli/agent": ["@npmcli/agent@3.0.0", "", { "dependencies": { "agent-base": "^7.1.0", "http-proxy-agent": "^7.0.0", "https-proxy-agent": "^7.0.1", "lru-cache": "^10.0.1", "socks-proxy-agent": "^8.0.3" } }, "sha512-S79NdEgDQd/NGCay6TCoVzXSj74skRZIKJcpJjC5lOq34SZzyI6MqtiiWoiVWoVrTcGjNeC4ipbh1VIHlpfF5Q=="],
 
     "@npmcli/fs": ["@npmcli/fs@4.0.0", "", { "dependencies": { "semver": "^7.3.5" } }, "sha512-/xGlezI6xfGO9NwuJlnwz/K14qD1kCSAGtacBHnGzeAIuJGazcp45KP5NuyARXoKb7cwulAGWVsbeSxdG/cb0Q=="],
+
+    "@pipelab/steamworks.js": ["@pipelab/steamworks.js@0.9.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-IHIcpSUoqmNvdT765JRVPUexLdFqew3beAZ+F7w7eMS7PsrH6Ust7VEYKIg3/cnhGIkGQHBlmH7ChwVR35hNJQ=="],
 
     "@pkgjs/parseargs": ["@pkgjs/parseargs@0.11.0", "", {}, "sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg=="],
 
@@ -783,8 +785,6 @@
     "ssri": ["ssri@12.0.0", "", { "dependencies": { "minipass": "^7.0.3" } }, "sha512-S7iGNosepx9RadX82oimUkvr0Ct7IjJbEbs4mJcTxst8um95J3sDYU1RBEOvdu6oL1Wek2ODI5i4MAw+dZ6cAQ=="],
 
     "stat-mode": ["stat-mode@1.0.0", "", {}, "sha512-jH9EhtKIjuXZ2cWxmXS8ZP80XyC3iasQxMDV8jzhNJpfDb7VbQLVW4Wvsxz9QZvzV+G4YoSfBUVKDOyxLzi/sg=="],
-
-    "steamworks.js": ["steamworks.js@0.4.0", "", { "dependencies": { "@types/node": "*" } }, "sha512-O5TTRs7ucCRql4IA/kYUIQYeghTsXqf3rAm81sC22RDId264LQYqQjuaMEUSqL60I5LdULiGu0W2/A+ZDcKBKA=="],
 
     "string-width": ["string-width@4.2.3", "", { "dependencies": { "emoji-regex": "^8.0.0", "is-fullwidth-code-point": "^3.0.0", "strip-ansi": "^6.0.1" } }, "sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g=="],
 
