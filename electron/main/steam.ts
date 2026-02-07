@@ -28,6 +28,21 @@ export function isSteamInitialized(): boolean {
 export async function initializeSteam(
   mainWindow: BrowserWindow | null,
 ): Promise<boolean> {
+  // If we already have a valid Steam session, avoid re-initializing.
+  if (
+    steamClient &&
+    steamInitialized &&
+    isSteamUserSessionAvailable(steamClient)
+  ) {
+    return true;
+  }
+
+  // Session went stale after app start (Steam restart/logout). Reset and retry.
+  if (steamClient && steamInitialized) {
+    steamClient = null;
+    steamInitialized = false;
+  }
+
   // If already initializing, return the existing promise
   if (initializationPromise) {
     return initializationPromise;
@@ -56,6 +71,19 @@ async function doInitializeSteam(
         console.log(
           `Steam init attempt ${attempt}/${steamInitMaxRetries}: Client not available`,
         );
+        if (attempt < steamInitMaxRetries) {
+          await sleep(steamInitRetryDelay);
+          continue;
+        }
+        return false;
+      }
+
+      if (!isSteamUserSessionAvailable(steamClient)) {
+        console.log(
+          `Steam init attempt ${attempt}/${steamInitMaxRetries}: user session not available (Steam may not be logged in)`,
+        );
+        steamClient = null;
+        steamInitialized = false;
         if (attempt < steamInitMaxRetries) {
           await sleep(steamInitRetryDelay);
           continue;
@@ -113,6 +141,16 @@ function ensureSteamAppIdFile(): void {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isSteamUserSessionAvailable(client: SteamClient): boolean {
+  try {
+    const steamId = client.localplayer.getSteamId();
+    const userName = client.localplayer.getName();
+    return Boolean(steamId?.steamId64 && userName);
+  } catch {
+    return false;
+  }
 }
 
 /**

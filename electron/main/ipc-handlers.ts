@@ -21,6 +21,7 @@ import { config } from './config';
 import {
   getSteamClient,
   isSteamInitialized,
+  initializeSteam,
   openSteamWorkshopPage,
   getWorkshopUrl,
 } from './steam';
@@ -29,10 +30,18 @@ import {
   ugcVisibilityToString,
 } from './steam-types';
 import { extractModMetadata } from './mod-parser';
-import { compressPreviewImage, getImageSizeInfo, cleanupTempImage } from './image-utils';
+import { compressPreviewImage, getImageSizeInfo } from './image-utils';
 
 // Whitelist of allowed file paths for reading (security)
 const allowedFilePaths = new Set<string>();
+
+type WorkshopQueryResult = {
+  items?: Array<unknown | null | undefined>;
+};
+
+type WorkshopApiCompatibility = {
+  getUserItems?: (...args: unknown[]) => Promise<unknown>;
+};
 
 /**
  * Register a file path as allowed for reading
@@ -54,6 +63,121 @@ function isFilePathAllowed(filePath: string): boolean {
     return true;
   }
   return allowedFilePaths.has(resolvedPath);
+}
+
+function isSteamAuthError(errorMessage: string): boolean {
+  const message = errorMessage.toLowerCase();
+  return (
+    message.includes('user not logged on') ||
+    message.includes('not logged in')
+  );
+}
+
+function normalizeWorkshopError(error: unknown): Error {
+  const errorMessage =
+    error instanceof Error ? error.message : String(error);
+
+  if (isSteamAuthError(errorMessage)) {
+    return new Error(
+      'Steam user is not logged in. Open Steam and sign in to the account that owns "Ascend from Nine Mountains", then retry.',
+    );
+  }
+
+  return error instanceof Error ? error : new Error(errorMessage);
+}
+
+async function ensureSteamClientReady(
+  getMainWindow: () => BrowserWindow | null,
+): Promise<NonNullable<ReturnType<typeof getSteamClient>>> {
+  let steamClient = getSteamClient();
+
+  if (!steamClient || !isSteamInitialized()) {
+    const initialized = await initializeSteam(getMainWindow());
+    if (!initialized) {
+      throw new Error(
+        'Steam is not connected. Please make sure Steam is running and logged in.',
+      );
+    }
+    steamClient = getSteamClient();
+  }
+
+  if (!steamClient || !isSteamInitialized()) {
+    throw new Error(
+      'Steam is not connected. Please make sure Steam is running and logged in.',
+    );
+  }
+
+  try {
+    steamClient.localplayer.getSteamId();
+    steamClient.localplayer.getName();
+  } catch (error) {
+    throw normalizeWorkshopError(error);
+  }
+
+  return steamClient;
+}
+
+function getItemsFromQueryResult(result: unknown): Array<unknown | null | undefined> {
+  if (
+    result &&
+    typeof result === 'object' &&
+    Array.isArray((result as WorkshopQueryResult).items)
+  ) {
+    return (result as WorkshopQueryResult).items || [];
+  }
+  return [];
+}
+
+async function queryWorkshopItemsWithCompatibility(
+  steamClient: NonNullable<ReturnType<typeof getSteamClient>>,
+): Promise<Array<unknown | null | undefined>> {
+  const userSteamId = steamClient.localplayer.getSteamId();
+  const { UserListType, UGCType, UserListOrder } = config.steam;
+  const workshopApi = steamClient.workshop as unknown as WorkshopApiCompatibility;
+  let lastError: unknown = null;
+
+  if (typeof workshopApi.getUserItems === 'function') {
+    try {
+      const result = await workshopApi.getUserItems(
+        1, // page
+        userSteamId.accountId,
+        UserListType.Published,
+        UGCType.Items,
+        UserListOrder.CreationOrderDesc,
+        { creator: config.appId, consumer: config.appId },
+      );
+      return getItemsFromQueryResult(result);
+    } catch (error) {
+      lastError = error;
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.warn('Modern getUserItems signature failed:', errorMessage);
+    }
+
+    try {
+      // Legacy steamworks.js versions expected creatorAppId and consumerAppId as separate args.
+      const result = await workshopApi.getUserItems(
+        1, // page
+        userSteamId.accountId,
+        UserListType.Published,
+        UGCType.Items,
+        UserListOrder.CreationOrderDesc,
+        config.appId,
+        config.appId,
+      );
+      return getItemsFromQueryResult(result);
+    } catch (error) {
+      lastError = error;
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      console.warn('Legacy getUserItems signature failed:', errorMessage);
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+  throw new Error('No compatible Steam Workshop query method available');
 }
 
 /**
@@ -228,15 +352,9 @@ export function registerIpcHandlers(
       _event: IpcMainInvokeEvent,
       modData: ModUploadData,
     ): Promise<WorkshopUploadResult> => {
-      const steamClient = getSteamClient();
-
-      if (!steamClient) {
-        throw new Error(
-          'Steam is not connected. Please make sure Steam is running and you own "Ascend from Nine Mountains".',
-        );
-      }
-
       try {
+        const steamClient = await ensureSteamClientReady(getMainWindow);
+
         const {
           zipPath,
           title,
@@ -339,38 +457,31 @@ export function registerIpcHandlers(
 
         return result;
       } catch (error) {
-        console.error('Workshop upload error:', error);
-        throw error;
+        const normalizedError = normalizeWorkshopError(error);
+        console.error('Workshop upload error:', normalizedError);
+        throw normalizedError;
       }
     },
   );
 
   // Get Workshop items
   ipcMain.handle('get-workshop-items', async (): Promise<WorkshopItemsResult> => {
-    const steamClient = getSteamClient();
-
-    if (!steamClient || !isSteamInitialized()) {
+    let steamClient: NonNullable<ReturnType<typeof getSteamClient>>;
+    try {
+      steamClient = await ensureSteamClientReady(getMainWindow);
+    } catch (error) {
+      const normalizedError = normalizeWorkshopError(error);
       return {
         items: [],
         status: 'steam_not_connected',
-        message: 'Steam is not connected. Please make sure Steam is running.',
+        message: normalizedError.message,
       };
     }
 
     try {
-      const userSteamId = steamClient.localplayer.getSteamId();
-      const { UserListType, UGCType, UserListOrder } = config.steam;
+      const workshopItems = await queryWorkshopItemsWithCompatibility(steamClient);
 
-      const result = await steamClient.workshop.getUserItems(
-        1, // page
-        userSteamId.accountId,
-        UserListType.Published,
-        UGCType.Items,
-        UserListOrder.CreationOrderDesc,
-        { creator: config.appId, consumer: config.appId },
-      );
-
-      const items: WorkshopItem[] = result.items
+      const items: WorkshopItem[] = workshopItems
         .filter((item: unknown) => item != null)
         .map((item: unknown) => {
           const typedItem = item as {
@@ -412,7 +523,15 @@ export function registerIpcHandlers(
             : undefined,
       };
     } catch (error) {
-      console.error('Workshop API error:', error);
+      const normalizedError = normalizeWorkshopError(error);
+      console.error('Workshop API error:', normalizedError);
+      if (isSteamAuthError(normalizedError.message)) {
+        return {
+          items: [],
+          status: 'steam_not_connected',
+          message: normalizedError.message,
+        };
+      }
       return {
         items: [],
         status: 'error',
@@ -429,13 +548,12 @@ export function registerIpcHandlers(
       _event: IpcMainInvokeEvent,
       publishedFileId: string,
     ): Promise<{ success: boolean; error?: string }> => {
-      const steamClient = getSteamClient();
-
-      if (!steamClient || !isSteamInitialized()) {
-        return {
-          success: false,
-          error: 'Steam is not connected',
-        };
+      let steamClient: NonNullable<ReturnType<typeof getSteamClient>>;
+      try {
+        steamClient = await ensureSteamClientReady(getMainWindow);
+      } catch (error) {
+        const normalizedError = normalizeWorkshopError(error);
+        return { success: false, error: normalizedError.message };
       }
 
       try {
@@ -444,7 +562,11 @@ export function registerIpcHandlers(
         console.log('Workshop item deleted successfully');
         return { success: true };
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
+        const normalizedError = normalizeWorkshopError(error);
+        const errorMsg =
+          normalizedError instanceof Error
+            ? normalizedError.message
+            : String(normalizedError);
         console.error('Failed to delete workshop item:', errorMsg);
         return {
           success: false,
@@ -460,7 +582,11 @@ export function registerIpcHandlers(
     userId?: string;
     userName?: string;
   }> => {
-    const steamClient = getSteamClient();
+    let steamClient = getSteamClient();
+    if (!steamClient || !isSteamInitialized()) {
+      await initializeSteam(getMainWindow());
+      steamClient = getSteamClient();
+    }
 
     if (!steamClient || !isSteamInitialized()) {
       return { connected: false };
