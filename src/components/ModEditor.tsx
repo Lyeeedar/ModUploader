@@ -46,6 +46,11 @@ export const ModEditor: React.FC<ModEditorProps> = ({
   const [selectedPreviewPath, setSelectedPreviewPath] = useState<string | null>(
     null,
   );
+  const [previewImageInfo, setPreviewImageInfo] = useState<{
+    originalSize?: string;
+    compressedSize?: string;
+    wasCompressed?: boolean;
+  } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -72,6 +77,7 @@ export const ModEditor: React.FC<ModEditorProps> = ({
     }
     setSelectedZipPath(null);
     setSelectedPreviewPath(null);
+    setPreviewImageInfo(null);
     setErrors({});
   }, [editingItem]);
 
@@ -187,10 +193,63 @@ export const ModEditor: React.FC<ModEditorProps> = ({
       onLog('info', 'Opening file selector for preview image...');
       const path = await window.electronAPI.selectPreviewImage();
       if (path) {
-        setSelectedPreviewPath(path);
         const filename = path.split(/[\\/]/).pop();
-        onLog('success', `Selected image: ${filename}`);
-        onShowStatus({ type: 'info', text: `Selected: ${filename}` });
+        onLog('info', `Selected image: ${filename}, checking size...`);
+
+        // Compress the image if needed
+        const compressionResult =
+          await window.electronAPI.compressPreviewImage(path);
+
+        if (!compressionResult.success) {
+          onLog('error', `Failed to process image: ${compressionResult.error}`);
+          onShowStatus({
+            type: 'error',
+            text: compressionResult.error || 'Failed to process image',
+          });
+          return;
+        }
+
+        // Use the compressed path (or original if no compression needed)
+        setSelectedPreviewPath(compressionResult.compressedPath || path);
+
+        // Format sizes for display
+        const formatSize = (bytes: number) => {
+          if (bytes >= 1024 * 1024) {
+            return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+          }
+          return `${(bytes / 1024).toFixed(1)} KB`;
+        };
+
+        setPreviewImageInfo({
+          originalSize: formatSize(compressionResult.originalSize),
+          compressedSize: compressionResult.compressedSize
+            ? formatSize(compressionResult.compressedSize)
+            : undefined,
+          wasCompressed: compressionResult.wasCompressed,
+        });
+
+        if (compressionResult.wasCompressed) {
+          const savings = (
+            (1 -
+              (compressionResult.compressedSize || 0) /
+                compressionResult.originalSize) *
+            100
+          ).toFixed(1);
+          onLog(
+            'success',
+            `Image compressed: ${formatSize(compressionResult.originalSize)} → ${formatSize(compressionResult.compressedSize || 0)} (${savings}% reduction, quality: ${compressionResult.quality}%)`,
+          );
+          onShowStatus({
+            type: 'success',
+            text: `Image compressed to ${formatSize(compressionResult.compressedSize || 0)}`,
+          });
+        } else {
+          onLog(
+            'success',
+            `Image OK: ${formatSize(compressionResult.originalSize)} (under 1MB limit)`,
+          );
+          onShowStatus({ type: 'info', text: `Selected: ${filename}` });
+        }
       } else {
         onLog('info', 'Image selection cancelled');
       }
@@ -442,6 +501,20 @@ export const ModEditor: React.FC<ModEditorProps> = ({
                         : 'No file selected'}
                   </span>
                 </div>
+                {previewImageInfo && (
+                  <div
+                    className={`form-hint ${previewImageInfo.wasCompressed ? 'compressed' : ''}`}
+                  >
+                    {previewImageInfo.wasCompressed ? (
+                      <>
+                        Compressed: {previewImageInfo.originalSize} →{' '}
+                        {previewImageInfo.compressedSize} (Steam limit: 1MB)
+                      </>
+                    ) : (
+                      <>Size: {previewImageInfo.originalSize} (under 1MB limit)</>
+                    )}
+                  </div>
+                )}
                 <ImagePreview
                   filePath={selectedPreviewPath}
                   alt="Preview image"

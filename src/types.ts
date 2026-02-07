@@ -69,6 +69,17 @@ export interface DeleteResult {
   error?: string;
 }
 
+export interface ImageCompressionResult {
+  success: boolean;
+  originalPath: string;
+  compressedPath?: string;
+  originalSize: number;
+  compressedSize?: number;
+  quality?: number;
+  wasCompressed: boolean;
+  error?: string;
+}
+
 export interface ElectronAPI {
   selectZip: () => Promise<string | null>;
   selectPreviewImage: () => Promise<string | null>;
@@ -81,6 +92,7 @@ export interface ElectronAPI {
   deleteWorkshopItem: (publishedFileId: string) => Promise<DeleteResult>;
   getSteamStatus: () => Promise<SteamStatus>;
   onSteamInitialized: (callback: () => void) => void;
+  compressPreviewImage: (imagePath: string) => Promise<ImageCompressionResult>;
 }
 
 declare global {

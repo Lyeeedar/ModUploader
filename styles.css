@@ -1175,6 +1175,11 @@ select.game-input {
   text-align: right;
 }
 
+.form-hint.compressed {
+  color: #4caf50;
+  text-align: left;
+}
+
 .game-input.error {
   border-color: #d32f2f;
   box-shadow: 0 0 5px rgba(211, 47, 47, 0.3);

@@ -20,6 +20,8 @@ const electronAPI: ElectronAPI = {
   onSteamInitialized: (callback: () => void) => {
     ipcRenderer.on('steam-initialized', callback);
   },
+  compressPreviewImage: (imagePath: string) =>
+    ipcRenderer.invoke('compress-preview-image', imagePath),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

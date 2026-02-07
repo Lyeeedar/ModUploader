@@ -14,6 +14,7 @@ import {
   WorkshopUploadResult,
   WorkshopItem,
   WorkshopItemsResult,
+  ImageCompressionResult,
 } from '../../src/types';
 import { config } from './config';
 import {
@@ -27,6 +28,7 @@ import {
   ugcVisibilityToString,
 } from './steam-types';
 import { extractModMetadata } from './mod-parser';
+import { compressPreviewImage, getImageSizeInfo } from './image-utils';
 
 /**
  * Register all IPC handlers
@@ -159,6 +161,22 @@ export function registerIpcHandlers(
         console.error('Error reading file as base64:', error);
         return null;
       }
+    },
+  );
+
+  // Compress preview image to fit Steam Workshop 1MB limit
+  ipcMain.handle(
+    'compress-preview-image',
+    async (
+      _event: IpcMainInvokeEvent,
+      imagePath: string,
+    ): Promise<ImageCompressionResult> => {
+      console.log('compress-preview-image handler called with:', imagePath);
+      const sizeInfo = getImageSizeInfo(imagePath);
+      console.log(
+        `Image size: ${sizeInfo.sizeFormatted}, exceeds limit: ${sizeInfo.exceedsLimit}`,
+      );
+      return compressPreviewImage(imagePath);
     },
   );
 
