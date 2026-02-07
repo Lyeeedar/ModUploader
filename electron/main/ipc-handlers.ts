@@ -137,6 +137,9 @@ async function queryWorkshopItemsWithCompatibility(
   let lastError: unknown = null;
 
   if (typeof workshopApi.getUserItems === 'function') {
+    // Query config to request full descriptions (not truncated)
+    const queryConfig = { includeLongDescription: true };
+
     try {
       const result = await workshopApi.getUserItems(
         1, // page
@@ -145,6 +148,7 @@ async function queryWorkshopItemsWithCompatibility(
         UGCType.Items,
         UserListOrder.CreationOrderDesc,
         { creator: config.appId, consumer: config.appId },
+        queryConfig,
       );
       return getItemsFromQueryResult(result);
     } catch (error) {
@@ -164,6 +168,7 @@ async function queryWorkshopItemsWithCompatibility(
         UserListOrder.CreationOrderDesc,
         config.appId,
         config.appId,
+        queryConfig,
       );
       return getItemsFromQueryResult(result);
     } catch (error) {
