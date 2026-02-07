@@ -57,7 +57,8 @@ export default defineConfig(() => {
               rollupOptions: {
                 external: [
                   ...Object.keys('dependencies' in pkg ? pkg.dependencies : {}),
-                  '@pipelab/steamworks.js'
+                  '@pipelab/steamworks.js',
+                  'electron-updater',
                 ],
               },
             },
@@ -76,7 +77,8 @@ export default defineConfig(() => {
               rollupOptions: {
                 external: [
                   ...Object.keys('dependencies' in pkg ? pkg.dependencies : {}),
-                  '@pipelab/steamworks.js'
+                  '@pipelab/steamworks.js',
+                  'electron-updater',
                 ],
               },
             },

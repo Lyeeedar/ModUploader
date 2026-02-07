@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { ModList } from './components/ModList';
 import { ModEditor } from './components/ModEditor';
 import { StatusMessage } from './components/StatusMessage';
+import { UpdateNotification } from './components/UpdateNotification';
 import { useDebugLog } from './hooks/useDebugLog';
 import { ModUploadData, WorkshopItem, WorkshopUploadResult } from './types';
 import { NavigationState } from './types/navigation';
@@ -138,6 +139,7 @@ const App: React.FC = () => {
 
   return (
     <>
+      <UpdateNotification />
       {renderCurrentScreen()}
 
       <StatusMessage message={statusMessage} onDismiss={dismissStatus} />

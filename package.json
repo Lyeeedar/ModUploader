@@ -1,9 +1,10 @@
 {
   "name": "mod-uploader",
-  "version": "1.4.1",
+
+  "version": "1.4.4",
+
   "description": "Steam Workshop Mod Uploader for Ascend from Nine Mountains",
   "main": "dist-electron/main/index.js",
-  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build && electron-builder --publish never",
@@ -11,7 +12,7 @@
     "build:linux": "vite build && electron-builder --linux --publish never",
     "build:portable": "vite build && electron-builder --win --config.win.target=portable --publish never"
   },
-  "author": "",
+  "author": "Lyeeedar",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^25.2.1",
@@ -28,6 +29,7 @@
   "dependencies": {
     "@pipelab/steamworks.js": "^0.9.1",
     "@types/yauzl": "^2.10.3",
+    "electron-updater": "^6.7.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "yauzl": "^3.2.0"
@@ -44,10 +46,15 @@
       "node_modules",
       "package.json"
     ],
+    "publish": {
+      "provider": "github",
+      "owner": "Lyeeedar",
+      "repo": "ModUploader"
+    },
     "win": {
-      "target": "portable",
+      "target": "nsis",
       "icon": "icon.ico",
-      "artifactName": "${productName}-${version}-win.${ext}"
+      "artifactName": "${productName}-${version}-win-setup.${ext}"
     },
     "portable": {
       "artifactName": "${productName}-${version}-win-portable.${ext}"
@@ -58,8 +65,8 @@
       "artifactName": "${productName}-${version}-linux.${ext}"
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false
     }
   }
 }

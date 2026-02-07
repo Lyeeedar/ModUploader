@@ -1,15 +1,11 @@
 // Main Electron entry point
 
 import { app, BrowserWindow } from 'electron';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
 import { config } from './config';
 import { initializeSteam } from './steam';
 import { registerIpcHandlers } from './ipc-handlers';
-
-// ES module compatibility
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { initAutoUpdater } from './updater';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -24,11 +20,11 @@ function createWindow(): void {
     width: windowConfig.width,
     height: windowConfig.height,
     webPreferences: {
-      preload: path.join(__dirname, '..', 'preload', 'index.mjs'),
+      preload: join(__dirname, '..', 'preload', 'index.js'),
       contextIsolation: true,
       nodeIntegration: false,
     },
-    icon: path.join(__dirname, '..', '..', 'icon.ico'),
+    icon: join(__dirname, '..', '..', 'icon.ico'),
     backgroundColor: windowConfig.backgroundColor,
     titleBarStyle: 'default',
     frame: true,
@@ -41,7 +37,7 @@ function createWindow(): void {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '..', 'index.html'));
+    mainWindow.loadFile(join(__dirname, '..', 'index.html'));
   }
 
   mainWindow.on('closed', () => {
@@ -56,6 +52,11 @@ app.whenReady().then(async () => {
 
   // Create the main window
   createWindow();
+
+  // Initialize auto-updater
+  if (mainWindow) {
+    initAutoUpdater(mainWindow);
+  }
 
   // Initialize Steam after window is created
   const steamDelay = config.timeouts.steamInitialization;
