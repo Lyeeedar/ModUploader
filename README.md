@@ -5,6 +5,7 @@ A standalone Electron application for uploading mods to the Steam Workshop for "
 ## Features
 
 - **Workshop Management**: View, upload, update, and delete your Steam Workshop items
+- **Automatic Image Compression**: Preview images over 1MB are automatically compressed to fit Steam's limit
 - **Preview Image Support**: Select and preview images before uploading
 - **Visibility Settings**: Public, Friends Only, Private, Unlisted
 - **Tag Support**: Add tags for better discoverability
@@ -104,7 +105,8 @@ ModUploader-AFNM/
 │   │   ├── steam.ts        # Steam SDK integration
 │   │   ├── steam-types.ts  # Steam TypeScript types
 │   │   ├── ipc-handlers.ts # IPC communication handlers
-│   │   └── mod-parser.ts   # ZIP/mod.js parsing
+│   │   ├── mod-parser.ts   # ZIP/mod.js parsing
+│   │   └── image-utils.ts  # Image compression utilities
 │   └── preload/
 │       └── index.ts        # Preload script
 ├── src/
@@ -140,5 +142,6 @@ ModUploader-AFNM/
 
 - **Steam not detected**: Make sure Steam is running before launching the app. The app will show connection status in the header.
 - **Upload fails**: Check that your ZIP file is valid and contains a proper mod.js file
+- **"Limit exceeded" error**: This usually means the preview image is too large. The app now automatically compresses images over 1MB, but if you still see this error, try using a smaller image.
 - **Permission errors**: Run the app with appropriate permissions for file system access
 - **Steam connection issues**: Use the "Retry" button in the Steam status indicator
