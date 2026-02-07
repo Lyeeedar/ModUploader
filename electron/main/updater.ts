@@ -1,8 +1,7 @@
 // Auto-updater module for electron-updater
 
 import { app, BrowserWindow, ipcMain } from 'electron';
-import pkg from 'electron-updater';
-const { autoUpdater } = pkg;
+import { autoUpdater } from 'electron-updater';
 
 let mainWindow: BrowserWindow | null = null;
 
