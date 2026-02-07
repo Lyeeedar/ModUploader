@@ -5,7 +5,7 @@ import RendererPlugin from 'vite-plugin-electron-renderer';
 import ReactPlugin from '@vitejs/plugin-react';
 import { resolve, dirname } from 'path';
 import { rmSync } from 'fs';
-import pkg from './package.json' with { type: 'json' };
+import pkg from './package.json' assert { type: 'json' };
 
 const isDEV = process.env.NODE_ENV === 'development';
 const __dirname = dirname(fileURLToPath(import.meta.url));

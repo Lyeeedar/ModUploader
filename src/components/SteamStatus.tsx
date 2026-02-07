@@ -25,9 +25,13 @@ export const SteamStatus: React.FC<SteamStatusProps> = ({ onRetry }) => {
     checkStatus();
 
     // Listen for Steam initialization
-    window.electronAPI.onSteamInitialized(() => {
+    const unsubscribe = window.electronAPI.onSteamInitialized(() => {
       checkStatus();
     });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   if (loading) {

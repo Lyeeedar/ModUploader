@@ -197,3 +197,19 @@ export function getImageSizeInfo(imagePath: string): {
     return { size: 0, exceedsLimit: false, sizeFormatted: '0 KB' };
   }
 }
+
+/**
+ * Clean up a temporary compressed image file
+ */
+export function cleanupTempImage(imagePath: string): void {
+  try {
+    // Only delete files in temp directory
+    const tempDir = os.tmpdir();
+    if (imagePath.startsWith(tempDir) && fs.existsSync(imagePath)) {
+      fs.unlinkSync(imagePath);
+      console.log('Cleaned up temp image:', imagePath);
+    }
+  } catch (error) {
+    console.error('Error cleaning up temp image:', error);
+  }
+}

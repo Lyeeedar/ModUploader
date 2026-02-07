@@ -7,6 +7,7 @@ interface ConfirmDialogProps {
   confirmText?: string;
   cancelText?: string;
   confirmType?: 'primary' | 'danger';
+  disabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -18,6 +19,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   confirmText = 'Confirm',
   cancelText = 'Cancel',
   confirmType = 'primary',
+  disabled = false,
   onConfirm,
   onCancel,
 }) => {
@@ -29,12 +31,14 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         <h3 className="dialog-title">{title}</h3>
         <p className="dialog-message">{message}</p>
         <div className="dialog-actions">
-          <button className="game-button" onClick={onCancel}>
+          <button type="button" className="game-button" onClick={onCancel} disabled={disabled}>
             {cancelText}
           </button>
           <button
+            type="button"
             className={`game-button ${confirmType === 'danger' ? 'danger' : 'primary'}`}
             onClick={onConfirm}
+            disabled={disabled}
           >
             {confirmText}
           </button>

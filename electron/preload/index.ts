@@ -19,6 +19,10 @@ const electronAPI: ElectronAPI = {
   getSteamStatus: () => ipcRenderer.invoke('get-steam-status'),
   onSteamInitialized: (callback: () => void) => {
     ipcRenderer.on('steam-initialized', callback);
+    // Return unsubscribe function
+    return () => {
+      ipcRenderer.removeListener('steam-initialized', callback);
+    };
   },
   compressPreviewImage: (imagePath: string) =>
     ipcRenderer.invoke('compress-preview-image', imagePath),

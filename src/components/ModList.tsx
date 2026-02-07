@@ -35,12 +35,14 @@ export const ModList: React.FC<ModListProps> = ({
 
   const loadWorkshopItems = useCallback(async () => {
     setLoading(true);
+    let timeoutId: NodeJS.Timeout | null = null;
+
     try {
       onLog('info', 'Loading your Steam Workshop items...');
 
       // Add timeout to prevent hanging
       const timeoutPromise = new Promise<WorkshopItemsResult>((resolve) => {
-        setTimeout(
+        timeoutId = setTimeout(
           () =>
             resolve({
               items: [],
@@ -55,6 +57,11 @@ export const ModList: React.FC<ModListProps> = ({
         window.electronAPI.getWorkshopItems(),
         timeoutPromise,
       ]);
+
+      // Clear timeout if the request completed first
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
 
       setWorkshopItems(Array.isArray(result.items) ? result.items : []);
       setStatus(result.status);
@@ -90,11 +97,14 @@ export const ModList: React.FC<ModListProps> = ({
     }, 2000);
 
     // Also listen for Steam initialization event
-    window.electronAPI.onSteamInitialized(() => {
+    const unsubscribe = window.electronAPI.onSteamInitialized(() => {
       loadWorkshopItems();
     });
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
   }, [loadWorkshopItems]);
 
   const handleRefresh = () => {
@@ -237,6 +247,7 @@ export const ModList: React.FC<ModListProps> = ({
         confirmType="danger"
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
+        disabled={deleting}
       />
     </div>
   );

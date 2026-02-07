@@ -91,7 +91,7 @@ export interface ElectronAPI {
   readFileBase64: (filePath: string) => Promise<string | null>;
   deleteWorkshopItem: (publishedFileId: string) => Promise<DeleteResult>;
   getSteamStatus: () => Promise<SteamStatus>;
-  onSteamInitialized: (callback: () => void) => void;
+  onSteamInitialized: (callback: () => void) => (() => void);
   compressPreviewImage: (imagePath: string) => Promise<ImageCompressionResult>;
 }
 

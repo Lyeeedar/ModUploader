@@ -25,16 +25,26 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({
     setLoading(true);
     setError(false);
 
+    let isCancelled = false;
+
     window.electronAPI
       .readFileBase64(filePath)
       .then((data) => {
-        setImageData(data);
-        setLoading(false);
+        if (!isCancelled) {
+          setImageData(data);
+          setLoading(false);
+        }
       })
       .catch(() => {
-        setError(true);
-        setLoading(false);
+        if (!isCancelled) {
+          setError(true);
+          setLoading(false);
+        }
       });
+
+    return () => {
+      isCancelled = true;
+    };
   }, [filePath]);
 
   if (!filePath) {

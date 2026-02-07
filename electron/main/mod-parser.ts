@@ -41,6 +41,7 @@ export async function extractModMetadata(
           const result = parseModJsContent(modJsContent);
           if (result) {
             console.log('Successfully parsed metadata from mod.js');
+            zipfile.close();
             resolve(result);
             return;
           }
@@ -51,12 +52,14 @@ export async function extractModMetadata(
           const result = parsePackageJson(packageJsonContent);
           if (result) {
             console.log('Successfully parsed metadata from package.json');
+            zipfile.close();
             resolve(result);
             return;
           }
         }
 
         console.log('No valid metadata found in ZIP file');
+        zipfile.close();
         resolve(null);
       };
 
@@ -117,6 +120,7 @@ export async function extractModMetadata(
 
       zipfile.on('error', (zipError) => {
         console.error('ZIP file error:', zipError);
+        zipfile.close();
         resolve(null);
       });
     });

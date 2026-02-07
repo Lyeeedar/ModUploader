@@ -8,6 +8,7 @@ import {
   IpcMainInvokeEvent,
 } from 'electron';
 import * as fs from 'fs';
+import * as path from 'path';
 import type { Client } from '@pipelab/steamworks.js';
 import {
   ModUploadData,
@@ -28,7 +29,32 @@ import {
   ugcVisibilityToString,
 } from './steam-types';
 import { extractModMetadata } from './mod-parser';
-import { compressPreviewImage, getImageSizeInfo } from './image-utils';
+import { compressPreviewImage, getImageSizeInfo, cleanupTempImage } from './image-utils';
+
+// Whitelist of allowed file paths for reading (security)
+const allowedFilePaths = new Set<string>();
+
+/**
+ * Register a file path as allowed for reading
+ */
+function allowFilePath(filePath: string): void {
+  if (filePath) {
+    allowedFilePaths.add(path.resolve(filePath));
+  }
+}
+
+/**
+ * Check if a file path is allowed for reading
+ */
+function isFilePathAllowed(filePath: string): boolean {
+  const resolvedPath = path.resolve(filePath);
+  // Allow temp directory files and whitelisted paths
+  const tempDir = path.resolve(require('os').tmpdir());
+  if (resolvedPath.startsWith(tempDir)) {
+    return true;
+  }
+  return allowedFilePaths.has(resolvedPath);
+}
 
 /**
  * Register all IPC handlers
@@ -86,8 +112,10 @@ export function registerIpcHandlers(
       });
 
       if (!result.canceled && result.filePaths.length > 0) {
-        console.log('Selected file:', result.filePaths[0]);
-        return result.filePaths[0];
+        const selectedPath = result.filePaths[0];
+        console.log('Selected file:', selectedPath);
+        allowFilePath(selectedPath);
+        return selectedPath;
       }
 
       console.log('No file selected');
@@ -120,8 +148,10 @@ export function registerIpcHandlers(
       });
 
       if (!result.canceled && result.filePaths.length > 0) {
-        console.log('Selected image:', result.filePaths[0]);
-        return result.filePaths[0];
+        const selectedPath = result.filePaths[0];
+        console.log('Selected image:', selectedPath);
+        allowFilePath(selectedPath);
+        return selectedPath;
       }
 
       console.log('No image selected');
@@ -149,10 +179,16 @@ export function registerIpcHandlers(
       filePath: string,
     ): Promise<string | null> => {
       try {
+        // Security check: only allow reading whitelisted files or temp files
+        if (!isFilePathAllowed(filePath)) {
+          console.error('File read denied - not in whitelist:', filePath);
+          return null;
+        }
+
         if (!fs.existsSync(filePath)) {
           return null;
         }
-        const buffer = fs.readFileSync(filePath);
+        const buffer = await fs.promises.readFile(filePath);
         const ext = filePath.split('.').pop()?.toLowerCase() || 'png';
         const mimeType =
           ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`;
@@ -176,7 +212,12 @@ export function registerIpcHandlers(
       console.log(
         `Image size: ${sizeInfo.sizeFormatted}, exceeds limit: ${sizeInfo.exceedsLimit}`,
       );
-      return compressPreviewImage(imagePath);
+      const result = await compressPreviewImage(imagePath);
+      // Whitelist the compressed image path for reading
+      if (result.success && result.compressedPath) {
+        allowFilePath(result.compressedPath);
+      }
+      return result;
     },
   );
 
