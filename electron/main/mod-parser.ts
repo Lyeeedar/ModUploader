@@ -16,7 +16,7 @@ export function formatModName(name: string): string {
 }
 
 /**
- * Extract mod metadata from a ZIP file containing mod.js
+ * Extract mod metadata from a ZIP file containing mod.js and/or package.json
  */
 export async function extractModMetadata(
   zipPath: string,
@@ -29,22 +29,50 @@ export async function extractModMetadata(
         return;
       }
 
-      let modJsFound = false;
+      let modJsContent: string | null = null;
+      let packageJsonContent: string | null = null;
+      let pendingReads = 0;
+
+      const tryResolve = () => {
+        if (pendingReads > 0) return;
+
+        // Try mod.js first
+        if (modJsContent) {
+          const result = parseModJsContent(modJsContent);
+          if (result) {
+            console.log('Successfully parsed metadata from mod.js');
+            resolve(result);
+            return;
+          }
+        }
+
+        // Fall back to package.json
+        if (packageJsonContent) {
+          const result = parsePackageJson(packageJsonContent);
+          if (result) {
+            console.log('Successfully parsed metadata from package.json');
+            resolve(result);
+            return;
+          }
+        }
+
+        console.log('No valid metadata found in ZIP file');
+        resolve(null);
+      };
 
       zipfile.readEntry();
 
       zipfile.on('entry', (entry) => {
-        if (entry.fileName.endsWith('mod.js') && !modJsFound) {
-          modJsFound = true;
+        const isModJs = entry.fileName.endsWith('mod.js');
+        const isPackageJson = entry.fileName.endsWith('package.json');
 
-          if (/\/$/.test(entry.fileName)) {
-            zipfile.readEntry();
-            return;
-          }
+        if ((isModJs || isPackageJson) && !/\/$/.test(entry.fileName)) {
+          pendingReads++;
 
           zipfile.openReadStream(entry, (err, readStream) => {
             if (err || !readStream) {
               console.error('Error opening read stream:', err);
+              pendingReads--;
               zipfile.readEntry();
               return;
             }
@@ -55,13 +83,18 @@ export async function extractModMetadata(
             });
 
             readStream.on('end', () => {
-              const result = parseModJsContent(data);
-              resolve(result);
-              zipfile.close();
+              if (isModJs) {
+                modJsContent = data;
+              } else if (isPackageJson) {
+                packageJsonContent = data;
+              }
+              pendingReads--;
+              zipfile.readEntry();
             });
 
             readStream.on('error', (streamError) => {
               console.error('Error reading stream:', streamError);
+              pendingReads--;
               zipfile.readEntry();
             });
           });
@@ -71,10 +104,15 @@ export async function extractModMetadata(
       });
 
       zipfile.on('end', () => {
-        if (!modJsFound) {
-          console.log('No mod.js found in ZIP file');
-          resolve(null);
-        }
+        // Wait for any pending reads to complete
+        const checkAndResolve = () => {
+          if (pendingReads === 0) {
+            tryResolve();
+          } else {
+            setTimeout(checkAndResolve, 10);
+          }
+        };
+        checkAndResolve();
       });
 
       zipfile.on('error', (zipError) => {
@@ -83,6 +121,32 @@ export async function extractModMetadata(
       });
     });
   });
+}
+
+/**
+ * Parse package.json content to extract metadata
+ */
+function parsePackageJson(data: string): ModPackageInfo | null {
+  try {
+    const pkg = JSON.parse(data);
+
+    if (!pkg.name) {
+      console.log('package.json missing required name field');
+      return null;
+    }
+
+    return {
+      name: pkg.name,
+      title: formatModName(pkg.title || pkg.name),
+      description: pkg.description,
+      version: pkg.version,
+      author: typeof pkg.author === 'string' ? pkg.author : pkg.author?.name,
+      tags: pkg.keywords,
+    };
+  } catch (error) {
+    console.error('Failed to parse package.json:', error);
+    return null;
+  }
 }
 
 /**
@@ -169,7 +233,33 @@ function parseMetadataObject(
  */
 function extractWithFallbackMethods(data: string): ModPackageInfo | null {
   try {
-    // Method 1: Look for the exact pattern with individual property extraction
+    // Method 1: Handle webpack inline JSON pattern
+    // Pattern: name: {"name":"value",...}.name
+    const webpackJsonMatch = data.match(
+      /getMetadata\s*:\s*function\s*\(\s*\)\s*\{\s*return\s*\(\s*\{[^]*?name\s*:\s*(\{[^}]+\})\.name/,
+    );
+
+    if (webpackJsonMatch) {
+      console.log('Found webpack inline JSON pattern, extracting...');
+      try {
+        const inlineJson = JSON.parse(webpackJsonMatch[1]);
+        return {
+          name: inlineJson.name,
+          title: formatModName(inlineJson.title || inlineJson.name),
+          description: inlineJson.description,
+          version: inlineJson.version,
+          author:
+            typeof inlineJson.author === 'string'
+              ? inlineJson.author
+              : inlineJson.author?.name,
+          tags: inlineJson.tags || inlineJson.keywords,
+        };
+      } catch (jsonError) {
+        console.error('Failed to parse webpack inline JSON:', jsonError);
+      }
+    }
+
+    // Method 2: Look for the exact pattern with individual property extraction
     const fullMatch = data.match(
       /getMetadata\s*:\s*function\s*\(\s*\)\s*\{\s*return\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)}/,
     );
@@ -198,7 +288,7 @@ function extractWithFallbackMethods(data: string): ModPackageInfo | null {
       return fallbackInfo;
     }
 
-    // Method 2: Basic regex extraction as last resort
+    // Method 3: Basic regex extraction as last resort
     const nameMatch = data.match(
       /name\s*:\s*["']([^"']+)["'][^}]*version\s*:\s*["']([^"']+)["']/,
     );
