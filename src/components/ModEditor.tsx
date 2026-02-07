@@ -1,63 +1,107 @@
 import React, { useState, useEffect } from 'react';
-import { ModUploadData, WorkshopItem } from '../types';
+import { ModUploadData, WorkshopItem, WorkshopUploadResult } from '../types';
 import { DebugMessage } from '../hooks/useDebugLog';
 import { GameTitle } from './GameTitle';
 import { DebugConsole } from './DebugConsole';
+import { ImagePreview } from './ImagePreview';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface ModEditorProps {
   onBack: () => void;
-  onUpload: (data: ModUploadData) => Promise<void>;
+  onUpload: (data: ModUploadData) => Promise<WorkshopUploadResult>;
   onLog: (type: 'error' | 'info' | 'success', message: string) => void;
-  onShowStatus: (message: { type: 'success' | 'error' | 'info'; text: string }) => void;
+  onShowStatus: (message: {
+    type: 'success' | 'error' | 'info';
+    text: string;
+  }) => void;
   debugMessages: DebugMessage[];
   onClearDebug: () => void;
   editingItem?: WorkshopItem;
 }
 
-export const ModEditor: React.FC<ModEditorProps> = ({ 
-  onBack, 
-  onUpload, 
-  onLog, 
+interface FormErrors {
+  title?: string;
+  description?: string;
+  zipPath?: string;
+  changeNotes?: string;
+}
+
+export const ModEditor: React.FC<ModEditorProps> = ({
+  onBack,
+  onUpload,
+  onLog,
   onShowStatus,
   debugMessages,
   onClearDebug,
-  editingItem
+  editingItem,
 }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     tags: '',
     visibility: 'public' as ModUploadData['visibility'],
-    changeNotes: ''
+    changeNotes: '',
   });
   const [selectedZipPath, setSelectedZipPath] = useState<string | null>(null);
-  const [selectedPreviewPath, setSelectedPreviewPath] = useState<string | null>(null);
+  const [selectedPreviewPath, setSelectedPreviewPath] = useState<string | null>(
+    null,
+  );
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [confirmUpload, setConfirmUpload] = useState(false);
 
   // Initialize form data based on whether we're editing or creating
   useEffect(() => {
     if (editingItem) {
-      // Pre-populate form with existing workshop item data
       setFormData({
         title: editingItem.title,
         description: editingItem.description || '',
         tags: editingItem.tags?.join(', ') || '',
         visibility: editingItem.visibility as ModUploadData['visibility'],
-        changeNotes: ''
+        changeNotes: '',
       });
     } else {
-      // Initialize empty form for new mod uploads
       setFormData({
         title: '',
         description: '',
         tags: '',
         visibility: 'public',
-        changeNotes: ''
+        changeNotes: '',
       });
     }
     setSelectedZipPath(null);
     setSelectedPreviewPath(null);
+    setErrors({});
   }, [editingItem]);
+
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+
+    if (!formData.title.trim()) {
+      newErrors.title = 'Title is required';
+    } else if (formData.title.length > 128) {
+      newErrors.title = 'Title must be 128 characters or less';
+    }
+
+    if (!formData.description.trim()) {
+      newErrors.description = 'Description is required';
+    } else if (formData.description.length > 8000) {
+      newErrors.description = 'Description must be 8000 characters or less';
+    }
+
+    if (!editingItem && !selectedZipPath) {
+      newErrors.zipPath = 'Please select a ZIP file';
+    }
+
+    if (editingItem && selectedZipPath && !formData.changeNotes.trim()) {
+      newErrors.changeNotes =
+        'Change notes are required when updating an existing mod';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSelectZip = async () => {
     try {
@@ -65,32 +109,45 @@ export const ModEditor: React.FC<ModEditorProps> = ({
       const path = await window.electronAPI.selectZip();
       if (path) {
         setSelectedZipPath(path);
-        const filename = path.split(/[\\\/]/).pop();
+        setErrors((prev) => ({ ...prev, zipPath: undefined }));
+        const filename = path.split(/[\\/]/).pop();
         onLog('success', `Selected ZIP: ${filename}`);
         onShowStatus({ type: 'info', text: `Selected: ${filename}` });
 
         // Extract mod.js information to pre-populate form fields
         try {
           onLog('info', 'Extracting mod information from ZIP...');
-          const packageInfo = await window.electronAPI.extractPackageInfo(path);
-          
+          const packageInfo =
+            await window.electronAPI.extractPackageInfo(path);
+
           if (packageInfo) {
             onLog('success', 'Successfully extracted mod information');
-            
-            // Only pre-populate fields that are empty (not overwrite existing data)
-            setFormData(prev => ({
+
+            setFormData((prev) => ({
               ...prev,
-              title: prev.title || packageInfo.title || packageInfo.name || prev.title,
-              description: prev.description || packageInfo.description || prev.description,
-              tags: prev.tags || (packageInfo.tags ? packageInfo.tags.join(', ') : prev.tags)
+              title:
+                prev.title ||
+                packageInfo.title ||
+                packageInfo.name ||
+                prev.title,
+              description:
+                prev.description || packageInfo.description || prev.description,
+              tags:
+                prev.tags ||
+                (packageInfo.tags ? packageInfo.tags.join(', ') : prev.tags),
             }));
 
-            // Log what was extracted for debugging
             if (packageInfo.title || packageInfo.name) {
-              onLog('info', `Found mod title: ${packageInfo.title || packageInfo.name}`);
+              onLog(
+                'info',
+                `Found mod title: ${packageInfo.title || packageInfo.name}`,
+              );
             }
             if (packageInfo.description) {
-              onLog('info', `Found mod description: ${packageInfo.description.substring(0, 100)}${packageInfo.description.length > 100 ? '...' : ''}`);
+              onLog(
+                'info',
+                `Found mod description: ${packageInfo.description.substring(0, 100)}${packageInfo.description.length > 100 ? '...' : ''}`,
+              );
             }
             if (packageInfo.tags && packageInfo.tags.length > 0) {
               onLog('info', `Found tags: ${packageInfo.tags.join(', ')}`);
@@ -102,18 +159,24 @@ export const ModEditor: React.FC<ModEditorProps> = ({
               onLog('info', `Found mod author: ${packageInfo.author}`);
             }
           } else {
-            onLog('info', 'No mod.js found in ZIP file or could not extract metadata');
+            onLog(
+              'info',
+              'No mod.js found in ZIP file or could not extract metadata',
+            );
           }
         } catch (extractError) {
-          const errorMsg = extractError instanceof Error ? extractError.message : 'Unknown error';
+          const errorMsg =
+            extractError instanceof Error
+              ? extractError.message
+              : 'Unknown error';
           onLog('error', `Failed to extract mod information: ${errorMsg}`);
-          // Don't show error to user since this is optional functionality
         }
       } else {
         onLog('info', 'File selection cancelled');
       }
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      const errorMsg =
+        error instanceof Error ? error.message : 'Unknown error';
       onLog('error', `Failed to select zip file: ${errorMsg}`);
       onShowStatus({ type: 'error', text: 'Failed to select zip file' });
     }
@@ -125,47 +188,45 @@ export const ModEditor: React.FC<ModEditorProps> = ({
       const path = await window.electronAPI.selectPreviewImage();
       if (path) {
         setSelectedPreviewPath(path);
-        const filename = path.split(/[\\\/]/).pop();
+        const filename = path.split(/[\\/]/).pop();
         onLog('success', `Selected image: ${filename}`);
         onShowStatus({ type: 'info', text: `Selected: ${filename}` });
       } else {
         onLog('info', 'Image selection cancelled');
       }
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      const errorMsg =
+        error instanceof Error ? error.message : 'Unknown error';
       onLog('error', `Failed to select preview image: ${errorMsg}`);
       onShowStatus({ type: 'error', text: 'Failed to select preview image' });
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmitClick = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // For new mods, ZIP file is required. For editing, it's optional
-    if (!editingItem && !selectedZipPath) {
-      onShowStatus({ type: 'error', text: 'Please select a ZIP file' });
+    if (!validateForm()) {
+      onShowStatus({ type: 'error', text: 'Please fix the form errors' });
       return;
     }
 
-    if (!formData.title || !formData.description) {
-      onShowStatus({ type: 'error', text: 'Title and description are required' });
-      return;
-    }
+    // Show confirmation dialog
+    setConfirmUpload(true);
+  };
 
-    // Require change notes when updating existing mods with a new ZIP file
-    if (editingItem && selectedZipPath && !formData.changeNotes.trim()) {
-      onShowStatus({ type: 'error', text: 'Change notes are required when updating an existing mod' });
-      return;
-    }
-
+  const handleConfirmUpload = async () => {
+    setConfirmUpload(false);
     setIsUploading(true);
+    setUploadProgress('Preparing upload...');
 
     // Generate automatic change notes for trivial updates (no ZIP)
     let changeNotes = formData.changeNotes;
     if (editingItem && !selectedZipPath) {
       const changes = [];
       if (formData.title !== editingItem.title) {
-        changes.push(`Updated title from "${editingItem.title}" to "${formData.title}"`);
+        changes.push(
+          `Updated title from "${editingItem.title}" to "${formData.title}"`,
+        );
       }
       if (formData.description !== (editingItem.description || '')) {
         changes.push('Updated description');
@@ -174,7 +235,9 @@ export const ModEditor: React.FC<ModEditorProps> = ({
         changes.push('Updated tags');
       }
       if (formData.visibility !== editingItem.visibility) {
-        changes.push(`Changed visibility from ${editingItem.visibility} to ${formData.visibility}`);
+        changes.push(
+          `Changed visibility from ${editingItem.visibility} to ${formData.visibility}`,
+        );
       }
       if (changes.length > 0) {
         changeNotes = `Minor update: ${changes.join(', ')}.`;
@@ -191,33 +254,53 @@ export const ModEditor: React.FC<ModEditorProps> = ({
       previewImagePath: selectedPreviewPath || undefined,
       workshopId: editingItem?.publishedFileId,
       changeNotes: changeNotes || (editingItem ? 'Updated mod.' : undefined),
-      change_note: changeNotes || (editingItem ? 'Updated mod.' : undefined) // Alternative field for Steam compatibility
+      change_note: changeNotes || (editingItem ? 'Updated mod.' : undefined),
     };
 
-    // Only include zipPath if we have a selected file
     if (selectedZipPath) {
       uploadData.zipPath = selectedZipPath;
     }
 
     try {
-      await onUpload(uploadData);
-      // On successful upload, go back to list
-      onBack();
-    } catch (error) {
-      // Error is handled in parent component
+      setUploadProgress(
+        editingItem ? 'Updating workshop item...' : 'Uploading to Steam Workshop...',
+      );
+      const result = await onUpload(uploadData);
+      
+      if (result.success) {
+        setUploadProgress('Upload complete!');
+        // Small delay to show success before navigating back
+        setTimeout(() => {
+          onBack();
+        }, 500);
+      }
+    } catch {
+      setUploadProgress(null);
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleInputChange = (field: keyof typeof formData) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: e.target.value
-    }));
+  const handleCancelUpload = () => {
+    setConfirmUpload(false);
   };
+
+  const handleInputChange =
+    (field: keyof typeof formData) =>
+    (
+      e: React.ChangeEvent<
+        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+      >,
+    ) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: e.target.value,
+      }));
+      // Clear error when user starts typing
+      if (errors[field as keyof FormErrors]) {
+        setErrors((prev) => ({ ...prev, [field]: undefined }));
+      }
+    };
 
   const handleOpenInSteam = async () => {
     if (editingItem) {
@@ -226,23 +309,29 @@ export const ModEditor: React.FC<ModEditorProps> = ({
         await window.electronAPI.openSteamWorkshop(editingItem.publishedFileId);
         onShowStatus({ type: 'success', text: 'Opened Steam Workshop page' });
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        const errorMsg =
+          error instanceof Error ? error.message : 'Unknown error';
         onLog('error', `Failed to open Steam Workshop: ${errorMsg}`);
-        onShowStatus({ type: 'error', text: 'Failed to open Steam Workshop page' });
+        onShowStatus({
+          type: 'error',
+          text: 'Failed to open Steam Workshop page',
+        });
       }
     }
   };
 
   return (
     <div className="container">
-      <GameTitle 
-        subtitle="Steam Workshop Manager"
-      />
+      <GameTitle subtitle="Steam Workshop Manager" />
 
       <main>
         <div className="section">
           <div className="editor-header">
-            <button className="game-button" onClick={onBack} disabled={isUploading}>
+            <button
+              className="game-button"
+              onClick={onBack}
+              disabled={isUploading}
+            >
               ← Back to Workshop Items
             </button>
             <div className="header-actions">
@@ -258,131 +347,176 @@ export const ModEditor: React.FC<ModEditorProps> = ({
                 disabled={isUploading}
               >
                 <span className="button-text">
-                  {isUploading 
-                    ? (editingItem ? 'Updating...' : 'Uploading...') 
-                    : (editingItem ? 'Update Workshop Item' : 'Upload to Workshop')
-                  }
+                  {isUploading
+                    ? uploadProgress || 'Processing...'
+                    : editingItem
+                      ? 'Update Workshop Item'
+                      : 'Upload to Workshop'}
                 </span>
               </button>
             </div>
           </div>
 
           <div className="form-container">
-            <form id="mod-form" onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label>{editingItem ? 'New Mod Package (.zip)' : 'Mod Package (.zip)*'}</label>
-              <div className="file-input-wrapper">
-                <button
-                  type="button"
-                  className="game-button"
-                  onClick={handleSelectZip}
-                  disabled={isUploading}
-                >
-                  Select ZIP File
-                </button>
-                <span className="file-path">
-                  {selectedZipPath ? selectedZipPath.split(/[\\\/]/).pop() : editingItem ? 'No new file selected (will keep existing)' : 'No file selected'}
-                </span>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>Title*</label>
-              <input
-                type="text"
-                className="game-input"
-                value={formData.title}
-                onChange={handleInputChange('title')}
-                required
-                placeholder="Enter mod title"
-                disabled={isUploading}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Description*</label>
-              <textarea
-                className="game-input"
-                rows={6}
-                value={formData.description}
-                onChange={handleInputChange('description')}
-                required
-                placeholder="Describe your mod..."
-                disabled={isUploading}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>{editingItem ? 'New Preview Image' : 'Preview Image'}</label>
-              <div className="file-input-wrapper">
-                <button
-                  type="button"
-                  className="game-button"
-                  onClick={handleSelectPreview}
-                  disabled={isUploading}
-                >
-                  Select Image
-                </button>
-                <span className="file-path">
-                  {selectedPreviewPath ? selectedPreviewPath.split(/[\\\/]/).pop() : editingItem ? 'No new image selected (will keep existing)' : 'No file selected'}
-                </span>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>Tags (comma-separated)</label>
-              <input
-                type="text"
-                className="game-input"
-                value={formData.tags}
-                onChange={handleInputChange('tags')}
-                placeholder="e.g., cultivation, items, balance"
-                disabled={isUploading}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Visibility</label>
-              <select
-                className="game-input"
-                value={formData.visibility}
-                onChange={handleInputChange('visibility')}
-                disabled={isUploading}
-              >
-                <option value="public">Public</option>
-                <option value="friends">Friends Only</option>
-                <option value="private">Private</option>
-                <option value="unlisted">Unlisted</option>
-              </select>
-            </div>
-
-            {editingItem && selectedZipPath && (
+            <form id="mod-form" onSubmit={handleSubmitClick}>
               <div className="form-group">
-                <label>Change Notes*</label>
-                <textarea
-                  className="game-input"
-                  rows={4}
-                  value={formData.changeNotes}
-                  onChange={handleInputChange('changeNotes')}
-                  required={!!(editingItem && selectedZipPath)}
-                  placeholder="Describe what's new in this version..."
+                <label>
+                  {editingItem ? 'New Mod Package (.zip)' : 'Mod Package (.zip)*'}
+                </label>
+                <div className="file-input-wrapper">
+                  <button
+                    type="button"
+                    className="game-button"
+                    onClick={handleSelectZip}
+                    disabled={isUploading}
+                  >
+                    Select ZIP File
+                  </button>
+                  <span className="file-path">
+                    {selectedZipPath
+                      ? selectedZipPath.split(/[\\/]/).pop()
+                      : editingItem
+                        ? 'No new file selected (will keep existing)'
+                        : 'No file selected'}
+                  </span>
+                </div>
+                {errors.zipPath && (
+                  <div className="form-error">{errors.zipPath}</div>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label>Title*</label>
+                <input
+                  type="text"
+                  className={`game-input ${errors.title ? 'error' : ''}`}
+                  value={formData.title}
+                  onChange={handleInputChange('title')}
+                  placeholder="Enter mod title"
                   disabled={isUploading}
                 />
-                <div className="form-help">
-                  Required when updating an existing mod. Describe what's changed or improved.
+                {errors.title && (
+                  <div className="form-error">{errors.title}</div>
+                )}
+                <div className="form-hint">
+                  {formData.title.length}/128 characters
                 </div>
               </div>
-            )}
 
-          </form>
+              <div className="form-group">
+                <label>Description*</label>
+                <textarea
+                  className={`game-input ${errors.description ? 'error' : ''}`}
+                  rows={6}
+                  value={formData.description}
+                  onChange={handleInputChange('description')}
+                  placeholder="Describe your mod..."
+                  disabled={isUploading}
+                />
+                {errors.description && (
+                  <div className="form-error">{errors.description}</div>
+                )}
+                <div className="form-hint">
+                  {formData.description.length}/8000 characters
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>
+                  {editingItem ? 'New Preview Image' : 'Preview Image'}
+                </label>
+                <div className="file-input-wrapper">
+                  <button
+                    type="button"
+                    className="game-button"
+                    onClick={handleSelectPreview}
+                    disabled={isUploading}
+                  >
+                    Select Image
+                  </button>
+                  <span className="file-path">
+                    {selectedPreviewPath
+                      ? selectedPreviewPath.split(/[\\/]/).pop()
+                      : editingItem
+                        ? 'No new image selected (will keep existing)'
+                        : 'No file selected'}
+                  </span>
+                </div>
+                <ImagePreview
+                  filePath={selectedPreviewPath}
+                  alt="Preview image"
+                  className="preview-thumbnail"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Tags (comma-separated)</label>
+                <input
+                  type="text"
+                  className="game-input"
+                  value={formData.tags}
+                  onChange={handleInputChange('tags')}
+                  placeholder="e.g., cultivation, items, balance"
+                  disabled={isUploading}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Visibility</label>
+                <select
+                  className="game-input"
+                  value={formData.visibility}
+                  onChange={handleInputChange('visibility')}
+                  disabled={isUploading}
+                >
+                  <option value="public">Public</option>
+                  <option value="friends">Friends Only</option>
+                  <option value="private">Private</option>
+                  <option value="unlisted">Unlisted</option>
+                </select>
+              </div>
+
+              {editingItem && selectedZipPath && (
+                <div className="form-group">
+                  <label>Change Notes*</label>
+                  <textarea
+                    className={`game-input ${errors.changeNotes ? 'error' : ''}`}
+                    rows={4}
+                    value={formData.changeNotes}
+                    onChange={handleInputChange('changeNotes')}
+                    placeholder="Describe what's new in this version..."
+                    disabled={isUploading}
+                  />
+                  {errors.changeNotes && (
+                    <div className="form-error">{errors.changeNotes}</div>
+                  )}
+                  <div className="form-help">
+                    Required when updating an existing mod. Describe what's
+                    changed or improved.
+                  </div>
+                </div>
+              )}
+            </form>
           </div>
         </div>
-        
-        <DebugConsole
-          messages={debugMessages}
-          onClear={onClearDebug}
-        />
+
+        <DebugConsole messages={debugMessages} onClear={onClearDebug} />
       </main>
+
+      <ConfirmDialog
+        isOpen={confirmUpload}
+        title={editingItem ? 'Update Workshop Item?' : 'Upload to Steam Workshop?'}
+        message={
+          editingItem
+            ? `Are you sure you want to update "${formData.title}"? This will publish the changes to Steam Workshop.`
+            : `Are you sure you want to upload "${formData.title}" to Steam Workshop?`
+        }
+        confirmText={editingItem ? 'Update' : 'Upload'}
+        cancelText="Cancel"
+        confirmType="primary"
+        onConfirm={handleConfirmUpload}
+        onCancel={handleCancelUpload}
+      />
     </div>
   );
 };
