@@ -9,8 +9,7 @@
     "build": "vite build && electron-builder --publish never",
     "build:win": "vite build && electron-builder --win --publish never",
     "build:linux": "vite build && electron-builder --linux --publish never",
-    "build:portable": "vite build && electron-builder --win --config.win.target=portable --publish never",
-    "build:mac": "vite build && electron-builder --mac --publish never"
+    "build:portable": "vite build && electron-builder --win --config.win.target=portable --publish never"
   },
   "author": "",
   "license": "MIT",
@@ -47,17 +46,16 @@
     ],
     "win": {
       "target": "portable",
-      "icon": "icon.ico"
+      "icon": "icon.ico",
+      "artifactName": "${productName}-${version}-win.${ext}"
     },
     "portable": {
-      "artifactName": "${productName} ${version} Portable.${ext}"
+      "artifactName": "${productName}-${version}-win-portable.${ext}"
     },
     "linux": {
       "target": "AppImage",
-      "icon": "icon.png"
-    },
-    "mac": {
-      "icon": "icon.png"
+      "icon": "icon.png",
+      "artifactName": "${productName}-${version}-linux.${ext}"
     },
     "nsis": {
       "oneClick": false,
