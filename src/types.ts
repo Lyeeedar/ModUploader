@@ -93,6 +93,14 @@ export interface ElectronAPI {
   getSteamStatus: () => Promise<SteamStatus>;
   onSteamInitialized: (callback: () => void) => (() => void);
   compressPreviewImage: (imagePath: string) => Promise<ImageCompressionResult>;
+
+  // Auto-updater
+  onUpdateAvailable: (callback: (info: { version: string; releaseNotes?: string }) => void) => () => void;
+  onUpdateDownloadProgress: (callback: (info: { percent: number }) => void) => () => void;
+  onUpdateDownloaded: (callback: () => void) => () => void;
+  checkForUpdates: () => Promise<void>;
+  downloadUpdate: () => Promise<void>;
+  installUpdate: () => Promise<void>;
 }
 
 declare global {

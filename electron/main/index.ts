@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { config } from './config';
 import { initializeSteam } from './steam';
 import { registerIpcHandlers } from './ipc-handlers';
+import { initAutoUpdater } from './updater';
 
 // ES module compatibility
 const __filename = fileURLToPath(import.meta.url);
@@ -56,6 +57,11 @@ app.whenReady().then(async () => {
 
   // Create the main window
   createWindow();
+
+  // Initialize auto-updater
+  if (mainWindow) {
+    initAutoUpdater(mainWindow);
+  }
 
   // Initialize Steam after window is created
   const steamDelay = config.timeouts.steamInitialization;

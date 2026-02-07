@@ -26,6 +26,26 @@ const electronAPI: ElectronAPI = {
   },
   compressPreviewImage: (imagePath: string) =>
     ipcRenderer.invoke('compress-preview-image', imagePath),
+
+  // Auto-updater
+  onUpdateAvailable: (callback: (info: { version: string; releaseNotes?: string }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, info: { version: string; releaseNotes?: string }) => callback(info);
+    ipcRenderer.on('update-available', listener);
+    return () => { ipcRenderer.removeListener('update-available', listener); };
+  },
+  onUpdateDownloadProgress: (callback: (info: { percent: number }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, info: { percent: number }) => callback(info);
+    ipcRenderer.on('update-download-progress', listener);
+    return () => { ipcRenderer.removeListener('update-download-progress', listener); };
+  },
+  onUpdateDownloaded: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on('update-downloaded', listener);
+    return () => { ipcRenderer.removeListener('update-downloaded', listener); };
+  },
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  downloadUpdate: () => ipcRenderer.invoke('download-update'),
+  installUpdate: () => ipcRenderer.invoke('install-update'),
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

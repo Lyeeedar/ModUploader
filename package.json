@@ -28,6 +28,7 @@
   "dependencies": {
     "@pipelab/steamworks.js": "^0.9.1",
     "@types/yauzl": "^2.10.3",
+    "electron-updater": "^6.7.3",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "yauzl": "^3.2.0"
@@ -44,10 +45,15 @@
       "node_modules",
       "package.json"
     ],
+    "publish": {
+      "provider": "github",
+      "owner": "Lyeeedar",
+      "repo": "ModUploader"
+    },
     "win": {
-      "target": "portable",
+      "target": "nsis",
       "icon": "icon.ico",
-      "artifactName": "${productName}-${version}-win.${ext}"
+      "artifactName": "${productName}-${version}-win-setup.${ext}"
     },
     "portable": {
       "artifactName": "${productName}-${version}-win-portable.${ext}"

@@ -47,6 +47,8 @@ jobs:
           path: |
             release/*.exe
             release/*.AppImage
+            release/*.yml
+            release/*.blockmap
           if-no-files-found: ignore
 
   release:
