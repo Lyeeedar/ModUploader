@@ -1,6 +1,8 @@
 {
   "name": "mod-uploader",
+
   "version": "1.4.4",
+
   "description": "Steam Workshop Mod Uploader for Ascend from Nine Mountains",
   "main": "dist-electron/main/index.js",
   "scripts": {
