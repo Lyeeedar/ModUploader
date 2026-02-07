@@ -58,6 +58,28 @@ export interface ModPackageInfo {
   tags?: string[];
 }
 
+export interface SteamStatus {
+  connected: boolean;
+  userId?: string;
+  userName?: string;
+}
+
+export interface DeleteResult {
+  success: boolean;
+  error?: string;
+}
+
+export interface ImageCompressionResult {
+  success: boolean;
+  originalPath: string;
+  compressedPath?: string;
+  originalSize: number;
+  compressedSize?: number;
+  quality?: number;
+  wasCompressed: boolean;
+  error?: string;
+}
+
 export interface ElectronAPI {
   selectZip: () => Promise<string | null>;
   selectPreviewImage: () => Promise<string | null>;
@@ -66,6 +88,11 @@ export interface ElectronAPI {
   getWorkshopItems: () => Promise<WorkshopItemsResult>;
   openUrl: (url: string) => Promise<void>;
   openSteamWorkshop: (publishedFileId: string) => Promise<void>;
+  readFileBase64: (filePath: string) => Promise<string | null>;
+  deleteWorkshopItem: (publishedFileId: string) => Promise<DeleteResult>;
+  getSteamStatus: () => Promise<SteamStatus>;
+  onSteamInitialized: (callback: () => void) => (() => void);
+  compressPreviewImage: (imagePath: string) => Promise<ImageCompressionResult>;
 }
 
 declare global {

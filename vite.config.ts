@@ -29,7 +29,7 @@ export default defineConfig(() => {
       assetsDir: '',
       outDir: resolve('./dist-electron'),
       rollupOptions: {
-        external: ['steamworks.js'],
+        external: ['@pipelab/steamworks.js'],
         output: {
           entryFileNames: `[name].js`,
           chunkFileNames: `[name].js`,
@@ -57,7 +57,7 @@ export default defineConfig(() => {
               rollupOptions: {
                 external: [
                   ...Object.keys('dependencies' in pkg ? pkg.dependencies : {}),
-                  'steamworks.js'
+                  '@pipelab/steamworks.js'
                 ],
               },
             },
@@ -76,7 +76,7 @@ export default defineConfig(() => {
               rollupOptions: {
                 external: [
                   ...Object.keys('dependencies' in pkg ? pkg.dependencies : {}),
-                  'steamworks.js'
+                  '@pipelab/steamworks.js'
                 ],
               },
             },

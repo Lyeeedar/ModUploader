@@ -975,3 +975,224 @@ select.game-input {
   margin-right: 8px;
   font-size: 10px;
 }
+
+/* Confirm Dialog */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dialog-content {
+  background: linear-gradient(
+    145deg,
+    rgba(20, 13, 8, 0.98) 0%,
+    rgba(15, 10, 6, 0.98) 100%
+  );
+  border: 2px solid #d4af37;
+  border-radius: 8px;
+  padding: 25px;
+  max-width: 450px;
+  width: 90%;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    0 0 40px rgba(212, 175, 55, 0.2);
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.dialog-title {
+  color: #ffd700;
+  font-size: 1.4em;
+  margin-bottom: 15px;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+.dialog-message {
+  color: #f4e4bc;
+  line-height: 1.5;
+  margin-bottom: 25px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+}
+
+/* Danger button variant */
+.game-button.danger {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(80, 20, 20, 0.9) 0%,
+    rgba(120, 30, 30, 0.9) 40%,
+    rgba(160, 40, 40, 0.9) 60%,
+    rgba(180, 50, 50, 0.9) 80%,
+    rgba(200, 60, 60, 0.8) 100%
+  );
+  border-color: #d32f2f;
+}
+
+.game-button.danger:hover:not(:disabled) {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(100, 30, 30, 1) 0%,
+    rgba(140, 40, 40, 1) 40%,
+    rgba(180, 50, 50, 1) 60%,
+    rgba(200, 60, 60, 1) 80%,
+    rgba(220, 70, 70, 0.95) 100%
+  );
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(211, 47, 47, 0.4);
+}
+
+/* Image Preview */
+.image-preview {
+  margin-top: 10px;
+  border: 1px solid rgba(139, 115, 85, 0.5);
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(10, 6, 4, 0.6);
+}
+
+.image-preview-img {
+  max-width: 100%;
+  max-height: 200px;
+  display: block;
+  margin: 0 auto;
+}
+
+.image-preview-loading,
+.image-preview-error {
+  padding: 20px;
+  text-align: center;
+  color: #8b7355;
+  font-style: italic;
+}
+
+.preview-thumbnail {
+  max-width: 300px;
+}
+
+/* Steam Status */
+.steam-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.steam-status.connecting {
+  background: rgba(100, 100, 50, 0.2);
+  border: 1px solid rgba(200, 200, 100, 0.4);
+  color: #d4d4a0;
+}
+
+.steam-status.connected {
+  background: rgba(40, 80, 40, 0.2);
+  border: 1px solid rgba(100, 180, 100, 0.4);
+  color: #a0d4a0;
+}
+
+.steam-status.disconnected {
+  background: rgba(80, 40, 40, 0.2);
+  border: 1px solid rgba(180, 100, 100, 0.4);
+  color: #d4a0a0;
+}
+
+.steam-status-icon {
+  font-size: 1.1em;
+}
+
+.steam-retry-btn {
+  margin-left: auto;
+  padding: 4px 8px;
+  background: rgba(212, 175, 55, 0.2);
+  border: 1px solid #8b7355;
+  border-radius: 3px;
+  color: #f4e4bc;
+  cursor: pointer;
+  font-size: 0.85em;
+  transition: all 0.2s;
+}
+
+.steam-retry-btn:hover {
+  background: rgba(212, 175, 55, 0.3);
+  border-color: #d4af37;
+}
+
+/* Section Header */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+/* Form Validation */
+.form-error {
+  color: #ff9999;
+  font-size: 0.85em;
+  margin-top: 5px;
+}
+
+.form-hint {
+  color: #8b7355;
+  font-size: 0.85em;
+  margin-top: 5px;
+  text-align: right;
+}
+
+.form-hint.compressed {
+  color: #4caf50;
+  text-align: left;
+}
+
+.game-input.error {
+  border-color: #d32f2f;
+  box-shadow: 0 0 5px rgba(211, 47, 47, 0.3);
+}
+
+/* Mod Item Actions */
+.mod-item-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.mod-item-actions .game-button.small {
+  padding: 6px 10px;
+  font-size: 0.9em;
+}
