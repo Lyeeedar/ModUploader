@@ -4,6 +4,7 @@ type UpdateState =
   | { status: 'idle' }
   | { status: 'available'; version: string }
   | { status: 'downloading'; percent: number }
+  | { status: 'error'; message: string }
   | { status: 'ready' };
 
 export const UpdateNotification: React.FC = () => {
@@ -24,10 +25,15 @@ export const UpdateNotification: React.FC = () => {
       setState({ status: 'ready' });
     });
 
+    const unsubError = window.electronAPI.onUpdateError((info) => {
+      setState({ status: 'error', message: info.message });
+    });
+
     return () => {
       unsubAvailable();
       unsubProgress();
       unsubDownloaded();
+      unsubError();
     };
   }, []);
 
@@ -70,6 +76,18 @@ export const UpdateNotification: React.FC = () => {
             />
           </div>
           <span className="update-percent">{state.percent}%</span>
+        </>
+      )}
+
+      {state.status === 'error' && (
+        <>
+          <span className="update-text">Update failed: {state.message}</span>
+          <button
+            className="update-btn update-btn-dismiss"
+            onClick={() => setDismissed(true)}
+          >
+            Dismiss
+          </button>
         </>
       )}
 

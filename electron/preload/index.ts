@@ -43,6 +43,11 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.on('update-downloaded', listener);
     return () => { ipcRenderer.removeListener('update-downloaded', listener); };
   },
+  onUpdateError: (callback: (info: { message: string }) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, info: { message: string }) => callback(info);
+    ipcRenderer.on('update-error', listener);
+    return () => { ipcRenderer.removeListener('update-error', listener); };
+  },
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   downloadUpdate: () => ipcRenderer.invoke('download-update'),
   installUpdate: () => ipcRenderer.invoke('install-update'),
