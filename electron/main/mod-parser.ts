@@ -154,27 +154,140 @@ function parsePackageJson(data: string): ModPackageInfo | null {
 }
 
 /**
+ * Detect tags from ModAPI function calls present in mod.js content
+ */
+function detectTagsFromModJs(data: string): string[] {
+  const tagMap: Array<{ pattern: RegExp; tag: string }> = [
+    // Items
+    { pattern: /\baddItem\s*\(/, tag: 'Items' },
+    { pattern: /\baddItemToShop\s*\(/, tag: 'Items' },
+    { pattern: /\baddItemToGuild\s*\(/, tag: 'Items' },
+    { pattern: /\baddItemToAuction\s*\(/, tag: 'Items' },
+    { pattern: /\baddItemToFallenStar\s*\(/, tag: 'Items' },
+    { pattern: /\baddEnchantment\s*\(/, tag: 'Items' },
+    { pattern: /\baddUncutStone\s*\(/, tag: 'Items' },
+    { pattern: /\baddManual\s*\(/, tag: 'Items' },
+    // Crafting
+    { pattern: /\baddRecipeToLibrary\s*\(/, tag: 'Crafting' },
+    { pattern: /\baddRecipeToResearch\s*\(/, tag: 'Crafting' },
+    { pattern: /\baddResearchableRecipe\s*\(/, tag: 'Crafting' },
+    { pattern: /\baddCraftingTechnique\s*\(/, tag: 'Crafting' },
+    { pattern: /\baddHarmonyType\s*\(/, tag: 'Crafting' },
+    { pattern: /\baddCraftingMissionsToLocation\s*\(/, tag: 'Crafting' },
+    // Characters
+    { pattern: /\baddCharacter\s*\(/, tag: 'Characters' },
+    // Locations
+    { pattern: /\baddLocation\s*\(/, tag: 'Locations' },
+    { pattern: /\blinkLocations\s*\(/, tag: 'Locations' },
+    { pattern: /\bregisterRootLocation\s*\(/, tag: 'Locations' },
+    { pattern: /\baddBuildingsToLocation\s*\(/, tag: 'Locations' },
+    // Combat
+    { pattern: /\baddEnemiesToLocation\s*\(/, tag: 'Combat' },
+    { pattern: /\baddFallenStar\s*\(/, tag: 'Combat' },
+    { pattern: /\baddPuppetType\s*\(/, tag: 'Combat' },
+    // Techniques
+    { pattern: /\baddTechnique\s*\(/, tag: 'Techniques' },
+    // Cultivation
+    { pattern: /\baddBreakthrough\s*\(/, tag: 'Cultivation' },
+    { pattern: /\baddDestiny\s*\(/, tag: 'Cultivation' },
+    // Events
+    { pattern: /\baddTriggeredEvent\s*\(/, tag: 'Events' },
+    { pattern: /\baddCalendarEvent\s*\(/, tag: 'Events' },
+    { pattern: /\baddEventsToLocation\s*\(/, tag: 'Events' },
+    { pattern: /\baddExplorationEventsToLocation\s*\(/, tag: 'Events' },
+    { pattern: /\baddMapEventsToLocation\s*\(/, tag: 'Events' },
+    // Quests
+    { pattern: /\baddQuest\s*\(/, tag: 'Quests' },
+    { pattern: /\baddMissionsToLocation\s*\(/, tag: 'Quests' },
+    // Audio
+    { pattern: /\baddMusic\s*\(/, tag: 'Audio' },
+    { pattern: /\baddSfx\s*\(/, tag: 'Audio' },
+    // Housing
+    { pattern: /\baddRoom\s*\(/, tag: 'Housing' },
+    // Guilds
+    { pattern: /\baddGuild\s*\(/, tag: 'Guilds' },
+    // Relationships
+    { pattern: /\baddDualCultivationTechnique\s*\(/, tag: 'Relationships' },
+    // Cosmetics
+    { pattern: /\baddPlayerSprite\s*\(/, tag: 'Cosmetics' },
+    // UI
+    { pattern: /\baddScreen\s*\(/, tag: 'UI' },
+    { pattern: /\baddCustomFont\s*\(/, tag: 'UI' },
+    { pattern: /\bsetCustomFontFamily\s*\(/, tag: 'UI' },
+    { pattern: /\baddThemeOverride\s*\(/, tag: 'UI' },
+    // Character Creation
+    { pattern: /\baddBirthBackground\s*\(/, tag: 'Character Creation' },
+    { pattern: /\baddChildBackground\s*\(/, tag: 'Character Creation' },
+    { pattern: /\baddTeenBackground\s*\(/, tag: 'Character Creation' },
+    { pattern: /\baddAlternativeStart\s*\(/, tag: 'Alternative Start' },
+    // Translation
+    { pattern: /\baddTranslation\s*\(/, tag: 'Translation' },
+    // Exploration
+    { pattern: /\baddMineChamber\s*\(/, tag: 'Exploration' },
+    { pattern: /\baddMysticalRegionBlessing\s*\(/, tag: 'Exploration' },
+    // Farming
+    { pattern: /\baddCrop\s*\(/, tag: 'Farming' },
+  ];
+
+  const detectedTags = new Set<string>();
+  for (const { pattern, tag } of tagMap) {
+    if (pattern.test(data)) {
+      detectedTags.add(tag);
+    }
+  }
+
+  const tags = Array.from(detectedTags);
+  if (tags.length > 0) {
+    console.log('Auto-detected tags from API usage:', tags);
+  }
+  return tags;
+}
+
+/**
  * Parse mod.js content to extract metadata
  */
 function parseModJsContent(data: string): ModPackageInfo | null {
   console.log('Parsing mod.js content...');
 
-  try {
-    // Primary method: Look for getMetadata function and extract its return value
-    const metadataMatch = data.match(
-      /getMetadata\s*:\s*function\s*\(\s*\)\s*\{\s*return\s*(\{[^}]*(?:\{[^}]*\}[^}]*)*\})/,
-    );
+  const detectedTags = detectTagsFromModJs(data);
 
-    if (metadataMatch) {
-      const result = parseMetadataObject(data, metadataMatch);
-      if (result) return result;
+  const mergeDetectedTags = (result: ModPackageInfo | null): ModPackageInfo | null => {
+    if (detectedTags.length === 0) return result;
+    // If metadata parsing failed but we have tags, return a minimal result with tags
+    const base = result ?? {};
+    const existing = base.tags ?? [];
+    const merged = Array.from(new Set([...existing, ...detectedTags]));
+    return { ...base, tags: merged };
+  };
+
+  try {
+    // Try all getMetadata syntax variants
+    const metadataPatterns = [
+      // Traditional: getMetadata: function() { return {...} }
+      /getMetadata\s*:\s*function\s*\(\s*\)\s*\{\s*return\s*(\{[^}]*(?:\{[^}]*\}[^}]*)*\})/,
+      // Method shorthand: getMetadata() { return {...} }
+      /getMetadata\s*\(\s*\)\s*\{\s*return\s*(\{[^}]*(?:\{[^}]*\}[^}]*)*\})/,
+      // Arrow with body: getMetadata: () => { return {...} }
+      /getMetadata\s*:\s*\(\s*\)\s*=>\s*\{\s*return\s*(\{[^}]*(?:\{[^}]*\}[^}]*)*\})/,
+      // Arrow with parenthesized object: getMetadata: () => ({...})
+      /getMetadata\s*:\s*\(\s*\)\s*=>\s*\(\s*(\{[^}]*(?:\{[^}]*\}[^}]*)*\})\s*\)/,
+      // Arrow without parens returning object directly: getMetadata:()=>({...})
+      /getMetadata\s*:\s*\(\s*\)\s*=>\s*(\{[^}]*(?:\{[^}]*\}[^}]*)*\})/,
+    ];
+
+    for (const pattern of metadataPatterns) {
+      const metadataMatch = data.match(pattern);
+      if (metadataMatch) {
+        const result = parseMetadataObject(data, metadataMatch);
+        if (result) return mergeDetectedTags(result);
+      }
     }
 
     // Fallback: Try enhanced regex extraction
-    return extractWithFallbackMethods(data);
+    return mergeDetectedTags(extractWithFallbackMethods(data));
   } catch (parseError) {
     console.error('Error parsing mod.js metadata:', parseError);
-    return extractWithFallbackMethods(data);
+    return mergeDetectedTags(extractWithFallbackMethods(data));
   }
 }
 
@@ -237,35 +350,94 @@ function parseMetadataObject(
  */
 function extractWithFallbackMethods(data: string): ModPackageInfo | null {
   try {
+    // Method 0: Webpack compiled inline JSON — find the JSON object literal
+    // after getMetadata and parse it directly (handles nested objects with brace counting)
+    const getMetadataPos = data.indexOf('getMetadata');
+    if (getMetadataPos !== -1) {
+      const searchArea = data.slice(getMetadataPos, getMetadataPos + 3000);
+      const jsonObjectStart = searchArea.search(/\{"name"\s*:/);
+      if (jsonObjectStart !== -1) {
+        const absoluteStart = getMetadataPos + jsonObjectStart;
+        let braceCount = 0;
+        let jsonStr = '';
+        for (
+          let i = absoluteStart;
+          i < Math.min(absoluteStart + 5000, data.length);
+          i++
+        ) {
+          const char = data[i];
+          jsonStr += char;
+          if (char === '{') braceCount++;
+          else if (char === '}') {
+            braceCount--;
+            if (braceCount === 0) break;
+          }
+        }
+        console.log('DEBUG Method 0: extracted JSON string:', jsonStr.slice(0, 200));
+        try {
+          const parsed = JSON.parse(jsonStr);
+          if (parsed.name) {
+            console.log('Successfully parsed metadata via inline JSON extraction');
+            return {
+              name: parsed.name,
+              title: formatModName(parsed.title || parsed.name),
+              description: parsed.description,
+              version: parsed.version,
+              author:
+                typeof parsed.author === 'string'
+                  ? parsed.author
+                  : parsed.author?.name,
+              tags: parsed.tags || parsed.keywords,
+            };
+          }
+        } catch (jsonError) {
+          console.error('Failed to parse inline JSON object:', jsonError);
+        }
+      } else {
+        console.log('DEBUG Method 0: no {"name": pattern found near getMetadata');
+      }
+    }
+
     // Method 1: Handle webpack inline JSON pattern
     // Pattern: name: {"name":"value",...}.name
-    const webpackJsonMatch = data.match(
+    const webpackJsonPatterns = [
       /getMetadata\s*:\s*function\s*\(\s*\)\s*\{\s*return\s*\(\s*\{[^]*?name\s*:\s*(\{[^}]+\})\.name/,
-    );
+      /getMetadata\s*\(\s*\)\s*\{\s*return\s*\(\s*\{[^]*?name\s*:\s*(\{[^}]+\})\.name/,
+      /getMetadata\s*:\s*\(\s*\)\s*=>\s*\(?\s*\{[^]*?name\s*:\s*(\{[^}]+\})\.name/,
+    ];
 
-    if (webpackJsonMatch) {
-      console.log('Found webpack inline JSON pattern, extracting...');
-      try {
-        const inlineJson = JSON.parse(webpackJsonMatch[1]);
-        return {
-          name: inlineJson.name,
-          title: formatModName(inlineJson.title || inlineJson.name),
-          description: inlineJson.description,
-          version: inlineJson.version,
-          author:
-            typeof inlineJson.author === 'string'
-              ? inlineJson.author
-              : inlineJson.author?.name,
-          tags: inlineJson.tags || inlineJson.keywords,
-        };
-      } catch (jsonError) {
-        console.error('Failed to parse webpack inline JSON:', jsonError);
+    for (const pattern of webpackJsonPatterns) {
+      const webpackJsonMatch = data.match(pattern);
+      if (webpackJsonMatch) {
+        console.log('Found webpack inline JSON pattern, extracting...');
+        try {
+          const inlineJson = JSON.parse(webpackJsonMatch[1]);
+          return {
+            name: inlineJson.name,
+            title: formatModName(inlineJson.title || inlineJson.name),
+            description: inlineJson.description,
+            version: inlineJson.version,
+            author:
+              typeof inlineJson.author === 'string'
+                ? inlineJson.author
+                : inlineJson.author?.name,
+            tags: inlineJson.tags || inlineJson.keywords,
+          };
+        } catch (jsonError) {
+          console.error('Failed to parse webpack inline JSON:', jsonError);
+        }
       }
     }
 
     // Method 2: Look for the exact pattern with individual property extraction
-    const fullMatch = data.match(
+    const fullMatchPatterns = [
       /getMetadata\s*:\s*function\s*\(\s*\)\s*\{\s*return\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)}/,
+      /getMetadata\s*\(\s*\)\s*\{\s*return\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)}/,
+      /getMetadata\s*:\s*\(\s*\)\s*=>\s*\(?\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}?\s*\)?/,
+    ];
+    const fullMatch = fullMatchPatterns.reduce<RegExpMatchArray | null>(
+      (found, pattern) => found ?? data.match(pattern),
+      null,
     );
 
     if (fullMatch) {
