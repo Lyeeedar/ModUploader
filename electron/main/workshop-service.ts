@@ -98,9 +98,12 @@ export async function uploadWorkshopItem(
         .filter((tag) => tag.length > 0);
     }
 
-    updateDetails.visibility = visibilityToUgcVisibility(
-      visibility || 'private',
-    );
+    if (visibility) {
+      updateDetails.visibility = visibilityToUgcVisibility(visibility);
+    } else if (!workshopId) {
+      // For new workshop items, keep the previous default of private unless the caller opts in.
+      updateDetails.visibility = visibilityToUgcVisibility('private');
+    }
 
     if (zipPath) {
       updateDetails.contentPath = zipPath;

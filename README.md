@@ -90,6 +90,7 @@ bun run cli:upload -- --workshop-id <published-file-id> --zip /absolute/path/to/
 Notes:
 - Steam still must be running and logged into the account that owns the workshop item.
 - `--workshop-id` is required for updates. Omit it only when intentionally creating a new item and include `--allow-create`.
+- On updates, omitting `--visibility` preserves the item's current Workshop visibility. On new item creation, the default remains `private`.
 - `--json` prints machine-readable output for wrapper scripts.
 
 ## Mod Structure
