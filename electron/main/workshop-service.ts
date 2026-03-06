@@ -6,6 +6,8 @@ import { config } from './config';
 import { getSteamClient, initializeSteam, isSteamInitialized } from './steam';
 import { visibilityToUgcVisibility } from './steam-types';
 
+const WORKSHOP_ID_PATTERN = /^\d+$/;
+
 export function isSteamAuthError(errorMessage: string): boolean {
   const message = errorMessage.toLowerCase();
   return (
@@ -25,6 +27,19 @@ export function normalizeWorkshopError(error: unknown): Error {
   }
 
   return error instanceof Error ? error : new Error(errorMessage);
+}
+
+export function parseWorkshopId(
+  workshopId: string,
+  label = 'workshop ID',
+): bigint {
+  const normalizedWorkshopId = workshopId.trim();
+  if (!WORKSHOP_ID_PATTERN.test(normalizedWorkshopId)) {
+    throw new Error(
+      `Invalid ${label}. It must be a non-negative integer (digits 0-9 only).`,
+    );
+  }
+  return BigInt(normalizedWorkshopId);
 }
 
 export async function ensureSteamClientReady(
@@ -79,7 +94,11 @@ export async function uploadWorkshopItem(
       previewImagePath,
     } = modData;
     const changeNotes = modData.changeNotes || modData.change_note;
-    let { workshopId } = modData;
+    const workshopItemId =
+      modData.workshopId == null
+        ? undefined
+        : parseWorkshopId(modData.workshopId);
+    const workshopId = workshopItemId?.toString();
 
     const updateDetails: Parameters<Client['workshop']['updateItem']>[1] = {};
 
@@ -101,8 +120,8 @@ export async function uploadWorkshopItem(
     if (visibility) {
       updateDetails.visibility = visibilityToUgcVisibility(visibility);
     } else if (!workshopId) {
-      // For new workshop items, keep the previous default of private unless the caller opts in.
-      updateDetails.visibility = visibilityToUgcVisibility('private');
+      // Keep CLI and GUI creation flows aligned when no visibility is provided.
+      updateDetails.visibility = visibilityToUgcVisibility('public');
     }
 
     if (zipPath) {
@@ -136,7 +155,7 @@ export async function uploadWorkshopItem(
       publishedFileId = workshopId;
       console.log('Updating existing workshop item:', publishedFileId);
       await steamClient.workshop.updateItem(
-        BigInt(workshopId),
+        workshopItemId,
         updateDetails,
         config.appId,
       );

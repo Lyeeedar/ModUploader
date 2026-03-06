@@ -18,6 +18,7 @@ import {
 import { config } from './config';
 import {
   getSteamClient,
+  initializeSteam,
   isSteamInitialized,
   openSteamWorkshopPage,
   getWorkshopUrl,
@@ -27,6 +28,7 @@ import {
   ensureSteamClientReady,
   isSteamAuthError,
   normalizeWorkshopError,
+  parseWorkshopId,
   uploadWorkshopItem,
 } from './workshop-service';
 import { extractModMetadata } from './mod-parser';
@@ -406,7 +408,9 @@ export function registerIpcHandlers(
 
       try {
         console.log('Deleting workshop item:', publishedFileId);
-        await steamClient.workshop.deleteItem(BigInt(publishedFileId));
+        await steamClient.workshop.deleteItem(
+          parseWorkshopId(publishedFileId, 'published file ID'),
+        );
         console.log('Workshop item deleted successfully');
         return { success: true };
       } catch (error) {

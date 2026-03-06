@@ -2,7 +2,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import type { ModUploadData, ModVisibility } from '../../src/types';
 import { getWorkshopUrl } from './steam';
-import { normalizeWorkshopError, uploadWorkshopItem } from './workshop-service';
+import {
+  normalizeWorkshopError,
+  parseWorkshopId,
+  uploadWorkshopItem,
+} from './workshop-service';
 
 interface UploadCliArgs {
   zipPath?: string;
@@ -60,7 +64,7 @@ Options:
   --title <text>         Optional title override
   --description <text>   Optional description override
   --tags <csv>           Optional comma-separated tag override
-  --visibility <value>   public | friends | private | unlisted
+  --visibility <value>   public | friends | private | unlisted (new items default to public)
   --preview <path>       Optional preview image override
   --allow-create         Create a new workshop item if no workshop ID is provided
   --open-workshop-page   Open the updated workshop page in Steam overlay
@@ -158,9 +162,11 @@ function toAbsolutePath(filePath: string): string {
 }
 
 function buildUploadData(args: UploadCliArgs): ModUploadData {
+  const workshopId = args.workshopId?.trim();
+
   return {
     zipPath: args.zipPath ? toAbsolutePath(args.zipPath) : undefined,
-    workshopId: args.workshopId,
+    workshopId,
     title: args.title || '',
     description: args.description || '',
     tags: args.tags,
@@ -186,6 +192,10 @@ function validateUploadArgs(args: UploadCliArgs): void {
     throw new Error(
       'Missing --workshop-id. Use --allow-create only when you intentionally want to create a new workshop item.',
     );
+  }
+
+  if (args.workshopId) {
+    parseWorkshopId(args.workshopId, '--workshop-id');
   }
 
   if (args.previewImagePath) {
