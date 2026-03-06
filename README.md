@@ -78,6 +78,20 @@ The built application will be in the `release` folder.
 5. **Delete Mods**: Click the delete button on any workshop item (with confirmation)
 6. **Refresh**: Click the refresh button to reload your workshop items
 
+## CLI Uploads
+
+The uploader also supports a headless update path for repeatable local workshop publishes:
+
+```bash
+bun run cli:prepare
+bun run cli:upload -- --workshop-id <published-file-id> --zip /absolute/path/to/mod.zip --change-note "What changed"
+```
+
+Notes:
+- Steam still must be running and logged into the account that owns the workshop item.
+- `--workshop-id` is required for updates. Omit it only when intentionally creating a new item and include `--allow-create`.
+- `--json` prints machine-readable output for wrapper scripts.
+
 ## Mod Structure
 
 For a mod to be recognized, its ZIP file should contain a `mod.js` file with metadata:
