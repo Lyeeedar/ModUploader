@@ -9,10 +9,8 @@ import {
 } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { Client } from '@pipelab/steamworks.js';
 import {
   ModUploadData,
-  WorkshopUploadResult,
   WorkshopItem,
   WorkshopItemsResult,
   ImageCompressionResult,
@@ -20,15 +18,19 @@ import {
 import { config } from './config';
 import {
   getSteamClient,
-  isSteamInitialized,
   initializeSteam,
+  isSteamInitialized,
   openSteamWorkshopPage,
   getWorkshopUrl,
 } from './steam';
+import { ugcVisibilityToString } from './steam-types';
 import {
-  visibilityToUgcVisibility,
-  ugcVisibilityToString,
-} from './steam-types';
+  ensureSteamClientReady,
+  isSteamAuthError,
+  normalizeWorkshopError,
+  parseWorkshopId,
+  uploadWorkshopItem,
+} from './workshop-service';
 import { extractModMetadata } from './mod-parser';
 import { compressPreviewImage, getImageSizeInfo } from './image-utils';
 
@@ -63,58 +65,6 @@ function isFilePathAllowed(filePath: string): boolean {
     return true;
   }
   return allowedFilePaths.has(resolvedPath);
-}
-
-function isSteamAuthError(errorMessage: string): boolean {
-  const message = errorMessage.toLowerCase();
-  return (
-    message.includes('user not logged on') ||
-    message.includes('not logged in')
-  );
-}
-
-function normalizeWorkshopError(error: unknown): Error {
-  const errorMessage =
-    error instanceof Error ? error.message : String(error);
-
-  if (isSteamAuthError(errorMessage)) {
-    return new Error(
-      'Steam user is not logged in. Open Steam and sign in to the account that owns "Ascend from Nine Mountains", then retry.',
-    );
-  }
-
-  return error instanceof Error ? error : new Error(errorMessage);
-}
-
-async function ensureSteamClientReady(
-  getMainWindow: () => BrowserWindow | null,
-): Promise<NonNullable<ReturnType<typeof getSteamClient>>> {
-  let steamClient = getSteamClient();
-
-  if (!steamClient || !isSteamInitialized()) {
-    const initialized = await initializeSteam(getMainWindow());
-    if (!initialized) {
-      throw new Error(
-        'Steam is not connected. Please make sure Steam is running and logged in.',
-      );
-    }
-    steamClient = getSteamClient();
-  }
-
-  if (!steamClient || !isSteamInitialized()) {
-    throw new Error(
-      'Steam is not connected. Please make sure Steam is running and logged in.',
-    );
-  }
-
-  try {
-    steamClient.localplayer.getSteamId();
-    steamClient.localplayer.getName();
-  } catch (error) {
-    throw normalizeWorkshopError(error);
-  }
-
-  return steamClient;
 }
 
 function getItemsFromQueryResult(result: unknown): Array<unknown | null | undefined> {
@@ -356,116 +306,11 @@ export function registerIpcHandlers(
     async (
       _event: IpcMainInvokeEvent,
       modData: ModUploadData,
-    ): Promise<WorkshopUploadResult> => {
-      try {
-        const steamClient = await ensureSteamClientReady(getMainWindow);
-
-        const {
-          zipPath,
-          title,
-          description,
-          tags,
-          visibility,
-          previewImagePath,
-          changeNotes,
-        } = modData;
-        let { workshopId } = modData;
-
-        // Prepare update details
-        const updateDetails: Parameters<Client['workshop']['updateItem']>[1] =
-          {};
-
-        if (title) {
-          updateDetails.title = title;
-        }
-
-        if (description) {
-          updateDetails.description = description;
-        }
-
-        if (tags) {
-          updateDetails.tags = tags
-            .split(',')
-            .map((t) => t.trim())
-            .filter((t) => t.length > 0);
-        }
-
-        updateDetails.visibility = visibilityToUgcVisibility(
-          visibility || 'private',
-        );
-
-        if (zipPath) {
-          updateDetails.contentPath = zipPath;
-        }
-
-        if (previewImagePath && fs.existsSync(previewImagePath)) {
-          updateDetails.previewPath = previewImagePath;
-        }
-
-        if (changeNotes) {
-          updateDetails.changeNote = changeNotes;
-        }
-
-        let publishedFileId: string;
-
-        if (!workshopId) {
-          // Create new item first
-          console.log('Creating new workshop item...');
-          const createResult = await steamClient.workshop.createItem(
-            config.appId,
-          );
-
-          publishedFileId = createResult.itemId.toString();
-          console.log('Workshop item created successfully:', publishedFileId);
-
-          // Update the newly created item
-          console.log('Updating workshop item with content...');
-          await steamClient.workshop.updateItem(
-            createResult.itemId,
-            updateDetails,
-            config.appId,
-          );
-        } else {
-          // Update existing item
-          publishedFileId = workshopId;
-          console.log('Updating existing workshop item:', publishedFileId);
-          await steamClient.workshop.updateItem(
-            BigInt(workshopId),
-            updateDetails,
-            config.appId,
-          );
-        }
-
-        const result: WorkshopUploadResult = {
-          success: true,
-          publishedFileId: publishedFileId,
-          error: undefined,
-        };
-
-        console.log(
-          'Workshop upload completed successfully:',
-          result.publishedFileId,
-        );
-
-        // Open workshop page in Steam overlay
-        try {
-          steamClient.overlay.activateToWebPage(
-            `steam://url/CommunityFilePage/${publishedFileId}`,
-          );
-          console.log('Opened Steam Workshop page for item:', publishedFileId);
-        } catch (overlayError) {
-          console.warn(
-            'Could not open Steam overlay to workshop page:',
-            overlayError,
-          );
-        }
-
-        return result;
-      } catch (error) {
-        const normalizedError = normalizeWorkshopError(error);
-        console.error('Workshop upload error:', normalizedError);
-        throw normalizedError;
-      }
+    ) => {
+      return uploadWorkshopItem(modData, {
+        mainWindow: getMainWindow(),
+        openWorkshopPage: true,
+      });
     },
   );
 
@@ -473,7 +318,7 @@ export function registerIpcHandlers(
   ipcMain.handle('get-workshop-items', async (): Promise<WorkshopItemsResult> => {
     let steamClient: NonNullable<ReturnType<typeof getSteamClient>>;
     try {
-      steamClient = await ensureSteamClientReady(getMainWindow);
+      steamClient = await ensureSteamClientReady(getMainWindow());
     } catch (error) {
       const normalizedError = normalizeWorkshopError(error);
       return {
@@ -555,7 +400,7 @@ export function registerIpcHandlers(
     ): Promise<{ success: boolean; error?: string }> => {
       let steamClient: NonNullable<ReturnType<typeof getSteamClient>>;
       try {
-        steamClient = await ensureSteamClientReady(getMainWindow);
+        steamClient = await ensureSteamClientReady(getMainWindow());
       } catch (error) {
         const normalizedError = normalizeWorkshopError(error);
         return { success: false, error: normalizedError.message };
@@ -563,7 +408,9 @@ export function registerIpcHandlers(
 
       try {
         console.log('Deleting workshop item:', publishedFileId);
-        await steamClient.workshop.deleteItem(BigInt(publishedFileId));
+        await steamClient.workshop.deleteItem(
+          parseWorkshopId(publishedFileId, 'published file ID'),
+        );
         console.log('Workshop item deleted successfully');
         return { success: true };
       } catch (error) {

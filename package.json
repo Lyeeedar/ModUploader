@@ -8,6 +8,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && electron-builder --publish never",
+    "cli:prepare": "vite build",
+    "cli:upload": "electron . --cli-upload",
     "build:win": "vite build && electron-builder --win --publish never",
     "build:linux": "vite build && electron-builder --linux --publish never",
     "build:portable": "vite build && electron-builder --win --config.win.target=portable --publish never"

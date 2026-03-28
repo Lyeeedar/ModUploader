@@ -6,6 +6,7 @@ import { config } from './config';
 import { initializeSteam } from './steam';
 import { registerIpcHandlers } from './ipc-handlers';
 import { initAutoUpdater } from './updater';
+import { isCliUploadMode, runCliUpload } from './cli';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -47,6 +48,12 @@ function createWindow(): void {
 
 // Application lifecycle
 app.whenReady().then(async () => {
+  if (isCliUploadMode(process.argv)) {
+    const exitCode = await runCliUpload(process.argv);
+    app.exit(exitCode);
+    return;
+  }
+
   // Register IPC handlers before creating window
   registerIpcHandlers(getMainWindow);
 
