@@ -4,6 +4,11 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 0.6.0)'
+        required: true
 
 permissions:
   contents: write
@@ -27,7 +32,7 @@ jobs:
       - name: Set version from tag
         shell: bash
         run: |
-          VERSION="${{ github.ref_name }}"
+          VERSION="${{ inputs.version || github.ref_name }}"
           VERSION="${VERSION#v}"
           npm version "$VERSION" --no-git-tag-version
 
